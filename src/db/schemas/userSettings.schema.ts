@@ -27,6 +27,8 @@ export interface UserSettingsDocType {
   pause_multipliers: PauseMultipliers;
   font_size: number;
   font_family: string;
+  /** When true, sentence-ending punctuation (., ?, !) forces a block break. */
+  split_on_sentence_end: boolean;
 }
 
 /** There is only ever one settings document; this is its fixed primary key. */
@@ -51,6 +53,7 @@ export const DEFAULT_USER_SETTINGS: UserSettingsDocType = {
   pause_multipliers: { ...DEFAULT_PAUSE_MULTIPLIERS },
   font_size: 48,
   font_family: "system-ui",
+  split_on_sentence_end: true,
 };
 
 export const userSettingsSchema: RxJsonSchema<UserSettingsDocType> = {
@@ -87,6 +90,7 @@ export const userSettingsSchema: RxJsonSchema<UserSettingsDocType> = {
     },
     font_size: { type: "number", minimum: 8, maximum: 200, multipleOf: 1 },
     font_family: { type: "string", maxLength: 100 },
+    split_on_sentence_end: { type: "boolean" },
   },
   required: [
     "id",
@@ -97,5 +101,6 @@ export const userSettingsSchema: RxJsonSchema<UserSettingsDocType> = {
     "pause_multipliers",
     "font_size",
     "font_family",
+    "split_on_sentence_end",
   ],
 };
