@@ -7,6 +7,14 @@
     "core:default",
     "opener:default",
     "dialog:default",
-    "fs:default"
+    "fs:default",
+    {
+      "identifier": "fs:allow-read-text-file",
+      "allow": [{ "path": "**" }]
+    },
+    {
+      "identifier": "fs:scope",
+      "allow": [{ "path": "**" }]
+    }
   ]
 }

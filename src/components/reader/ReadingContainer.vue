@@ -4,10 +4,11 @@ import { useSettingsStore } from "../../stores/settings";
 import { usePlayback } from "../../composables/usePlayback";
 import { useKeyboardShortcuts } from "../../composables/useKeyboardShortcuts";
 import { segmentIntoBlocks } from "../../parsing/parser";
-import { loadDocumentFromDialog } from "../../documents/fileLoader";
+import { loadDocumentFromDialog, loadDocumentFromPath } from "../../documents/fileLoader";
 import type { ParsedDocument } from "../../documents/types";
 import { useDocumentsStore } from "../../stores/documents";
 import { useProgressStore } from "../../stores/progress";
+import { isTauri } from "../../utils/platform";
 
 const settings = useSettingsStore();
 const playback = usePlayback();
@@ -72,11 +73,28 @@ function loadSample() {
 async function openFile() {
   const doc = await loadDocumentFromDialog();
   if (!doc) return;
+  await openParsedDocument(doc);
+}
+
+async function openFromLibrary(docId: string) {
+  const meta = await documentsStore.getDocument(docId);
+  if (!meta) return;
+
+  if (isTauri()) {
+    const doc = await loadDocumentFromPath(meta.file_path, meta.file_type, meta.language);
+    if (!doc) return;
+    await openParsedDocument(doc);
+  } else {
+    // Web mode cannot read from disk paths — re-open via file dialog.
+    await openFile();
+  }
+}
+
+async function openParsedDocument(doc: ParsedDocument) {
   loadedDocument.value = doc;
   const saved = await documentsStore.saveDocument(doc);
   savedDocId.value = saved?.id ?? null;
 
-  // Restore progress if available.
   let startIndex = 0;
   if (savedDocId.value) {
     startIndex = await progressStore.loadProgress(savedDocId.value);
@@ -142,13 +160,20 @@ watch(
   ([wpm, multipliers]) => playback.updateSettings(wpm, multipliers),
 );
 
+function handleOpenRecent(event: Event) {
+  const detail = (event as CustomEvent).detail;
+  if (detail?.docId) void openFromLibrary(detail.docId);
+}
+
 onMounted(() => {
   loadSample();
   window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener("zenoread:open-recent", handleOpenRecent);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", handleBeforeUnload);
+  window.removeEventListener("zenoread:open-recent", handleOpenRecent);
 });
 </script>
 

@@ -3,6 +3,7 @@ import { readTextFile } from "@tauri-apps/plugin-fs";
 import { parserRegistry } from "./parserRegistry";
 import type { ParsedDocument } from "./types";
 import type { FileType } from "../db/schemas/documents.schema";
+import { isTauri } from "../utils/platform";
 import { reportError } from "../utils/errors";
 
 const EXTENSION_TO_TYPE: Record<string, FileType> = {
@@ -135,8 +136,4 @@ async function loadFromWebInput(): Promise<ParsedDocument | null> {
     };
     input.click();
   });
-}
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
