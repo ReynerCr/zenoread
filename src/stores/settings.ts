@@ -9,6 +9,8 @@ import {
 } from "../db/schemas/userSettings.schema";
 import { reportError } from "../utils/errors";
 
+const SAVE_DEBOUNCE_MS = 500;
+
 /**
  * Holds the single UserSettings document, keeps it in sync with RxDB, and
  * reflects presentation settings (theme, font) onto the document element.
@@ -16,6 +18,7 @@ import { reportError } from "../utils/errors";
 export const useSettingsStore = defineStore("settings", () => {
   const settings = ref<UserSettingsDocType>({ ...DEFAULT_USER_SETTINGS });
   const loaded = ref(false);
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   const theme = computed(() => settings.value.theme);
 
@@ -48,17 +51,15 @@ export const useSettingsStore = defineStore("settings", () => {
     }
   }
 
-  /** Persists a partial update to the settings document. */
-  async function update(patch: Partial<Omit<UserSettingsDocType, "id">>): Promise<void> {
-    // Optimistically update the UI.
-    settings.value = { ...settings.value, ...patch };
+  /** Persists the full settings document to RxDB (debounced). */
+  async function flushSave(): Promise<void> {
     try {
       const db = await getDatabase();
       const doc = await db.user_settings
         .findOne({ selector: { id: SETTINGS_SINGLETON_ID } })
         .exec();
       if (doc) {
-        await doc.patch(patch);
+        await doc.patch(settings.value);
       } else {
         await db.user_settings.insert({ ...settings.value });
       }
@@ -67,8 +68,24 @@ export const useSettingsStore = defineStore("settings", () => {
     }
   }
 
+  /**
+   * Optimistically updates the UI and schedules a debounced save to RxDB.
+   * Rapid successive calls (e.g. dragging a slider) coalesce into a single
+   * write after the user stops moving for SAVE_DEBOUNCE_MS.
+   */
+  function update(patch: Partial<Omit<UserSettingsDocType, "id">>): void {
+    // Optimistically update the UI immediately.
+    settings.value = { ...settings.value, ...patch };
+
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      void flushSave();
+    }, SAVE_DEBOUNCE_MS);
+  }
+
   function toggleTheme(): void {
-    void update({ theme: settings.value.theme === "dark" ? "light" : "dark" });
+    update({ theme: settings.value.theme === "dark" ? "light" : "dark" });
   }
 
   // Reflect presentation settings onto the root element.
