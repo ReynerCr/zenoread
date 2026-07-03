@@ -10,7 +10,6 @@ export type FileType = "txt" | "pdf" | "epub" | "md";
 export interface DocumentDocType {
   id: string;
   title: string;
-  content_raw: string;
   total_words: number;
   /** Absolute path on disk the document was loaded from (for reloading). */
   file_path: string;
@@ -31,7 +30,6 @@ export const documentsSchema: RxJsonSchema<DocumentDocType> = {
   properties: {
     id: { type: "string", maxLength: 64 },
     title: { type: "string", maxLength: 500 },
-    content_raw: { type: "string" },
     total_words: { type: "number", minimum: 0, multipleOf: 1 },
     file_path: { type: "string", maxLength: 4096 },
     created_date: { type: "string", maxLength: 32 },
@@ -42,7 +40,6 @@ export const documentsSchema: RxJsonSchema<DocumentDocType> = {
   required: [
     "id",
     "title",
-    "content_raw",
     "total_words",
     "file_path",
     "created_date",

@@ -1,22 +1,28 @@
 <script setup lang="ts">
-import { computed, watch, onMounted } from "vue";
+import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useSettingsStore } from "../../stores/settings";
 import { usePlayback } from "../../composables/usePlayback";
 import { useKeyboardShortcuts } from "../../composables/useKeyboardShortcuts";
 import { segmentIntoBlocks } from "../../parsing/parser";
+import { loadDocumentFromDialog } from "../../documents/fileLoader";
+import type { ParsedDocument } from "../../documents/types";
+import { useDocumentsStore } from "../../stores/documents";
+import { useProgressStore } from "../../stores/progress";
 
 const settings = useSettingsStore();
 const playback = usePlayback();
+const documentsStore = useDocumentsStore();
+const progressStore = useProgressStore();
+const loadedDocument = ref<ParsedDocument | null>(null);
+const savedDocId = ref<string | null>(null);
 
 useKeyboardShortcuts({
   onTogglePlayPause: togglePlayPause,
   onNext: () => playback.next(),
   onPrev: () => playback.prev(),
-  onStop: () => playback.stop(),
+  onStop: stopAndSave,
 });
 
-// Phase 3 will replace this with loaded documents. For now a sample text
-// exercises the full parser → controller → renderer pipeline.
 const SAMPLE_TEXT =
   "Welcome to ZenoRead. This is a speed-reading app. " +
   "It uses RSVP to show words quickly. " +
@@ -40,20 +46,70 @@ const progressLabel = computed(() => {
 
 const isPlaying = computed(() => playback.state.value === "play");
 const isPaused = computed(() => playback.state.value === "pause");
+const hasDocument = computed(() => loadedDocument.value !== null);
 
-function loadSample() {
-  const blocks = segmentIntoBlocks(SAMPLE_TEXT, {
+function loadText(text: string, startIndex = 0) {
+  const blocks = segmentIntoBlocks(text, {
     language: "en",
     minWords: settings.settings.min_words_screen,
     maxWords: settings.settings.max_words_screen,
     splitOnSentenceEnd: settings.settings.split_on_sentence_end,
   });
   playback.load(blocks, settings.settings.wpm_default, settings.settings.pause_multipliers);
+  if (startIndex > 0 && startIndex < blocks.length) {
+    playback.seek(startIndex);
+  }
+}
+
+function loadSample() {
+  loadedDocument.value = null;
+  savedDocId.value = null;
+  progressStore.clearProgress();
+  loadText(SAMPLE_TEXT);
+}
+
+async function openFile() {
+  const doc = await loadDocumentFromDialog();
+  if (!doc) return;
+  loadedDocument.value = doc;
+  const saved = await documentsStore.saveDocument(doc);
+  savedDocId.value = saved?.id ?? null;
+
+  // Restore progress if available.
+  let startIndex = 0;
+  if (savedDocId.value) {
+    startIndex = await progressStore.loadProgress(savedDocId.value);
+  }
+  loadText(doc.content_raw, startIndex);
 }
 
 function togglePlayPause() {
-  if (isPlaying.value) playback.pause();
-  else playback.play();
+  if (isPlaying.value) {
+    playback.pause();
+    saveCurrentProgress();
+  } else {
+    playback.play();
+  }
+}
+
+function saveCurrentProgress() {
+  if (!savedDocId.value) return;
+  void progressStore.saveProgress(
+    savedDocId.value,
+    playback.currentIndex.value,
+    playback.totalBlocks.value,
+  );
+}
+
+function stopAndSave() {
+  saveCurrentProgress();
+  playback.stop();
+}
+
+function handleBeforeUnload() {
+  if (savedDocId.value && playback.state.value !== "stop") {
+    saveCurrentProgress();
+  }
 }
 
 // Reload when block-sizing or splitting settings change.
@@ -64,7 +120,9 @@ watch(
     settings.settings.split_on_sentence_end,
   ],
   () => {
-    if (playback.totalBlocks.value > 0) loadSample();
+    if (playback.totalBlocks.value > 0) {
+      loadText(loadedDocument.value?.content_raw ?? SAMPLE_TEXT);
+    }
   },
 );
 
@@ -76,6 +134,11 @@ watch(
 
 onMounted(() => {
   loadSample();
+  window.addEventListener("beforeunload", handleBeforeUnload);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("beforeunload", handleBeforeUnload);
 });
 </script>
 
@@ -98,8 +161,21 @@ onMounted(() => {
       </p>
     </div>
 
-    <!-- Progress + controls -->
+    <!-- Document title + progress + controls -->
     <div class="flex flex-col items-center gap-3 pb-6">
+      <div class="flex items-center gap-3">
+        <span v-if="hasDocument" class="max-w-xs truncate text-xs text-zeno-muted">
+          {{ loadedDocument?.title }}
+        </span>
+        <button
+          class="rounded-md border border-zeno-border px-3 py-1 text-xs text-zeno-muted hover:text-zeno-text"
+          aria-label="Open file"
+          @click="openFile"
+        >
+          Open file
+        </button>
+      </div>
+
       <span v-if="progressLabel" class="text-xs text-zeno-muted tabular-nums">
         {{ progressLabel }}
       </span>
@@ -121,7 +197,7 @@ onMounted(() => {
         <button
           class="rounded-md border border-zeno-border px-3 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface"
           aria-label="Stop"
-          @click="playback.stop()"
+          @click="stopAndSave"
         >
           Stop
         </button>

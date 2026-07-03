@@ -26,6 +26,8 @@ test.describe("Keyboard shortcuts", () => {
 
     const progress = page.locator(".tabular-nums");
     await expect(progress).toHaveText(/^1 \/ \d+$/);
+    await page.waitForTimeout(300);
+    await expect(progress).toHaveText(/^1 \/ \d+$/);
 
     await page.keyboard.press("ArrowRight");
     await expect(progress).toHaveText(/^2 \/ \d+$/);
@@ -37,7 +39,11 @@ test.describe("Keyboard shortcuts", () => {
 
     const progress = page.locator(".tabular-nums");
     await expect(progress).toHaveText(/^1 \/ \d+$/);
+    // Wait for stores to settle (settings init may trigger a reload).
+    await page.waitForTimeout(300);
+    await expect(progress).toHaveText(/^1 \/ \d+$/);
     await page.keyboard.press("ArrowRight");
+    await expect(progress).toHaveText(/^2 \/ \d+$/);
     await page.keyboard.press("ArrowRight");
     await expect(progress).toHaveText(/^3 \/ \d+$/);
 
@@ -60,7 +66,10 @@ test.describe("Keyboard shortcuts", () => {
 
     const progress = page.locator(".tabular-nums");
     await expect(progress).toHaveText(/^1 \/ \d+$/);
+    await page.waitForTimeout(300);
+    await expect(progress).toHaveText(/^1 \/ \d+$/);
     await page.keyboard.press("ArrowRight");
+    await expect(progress).toHaveText(/^2 \/ \d+$/);
     await page.keyboard.press("ArrowRight");
     await expect(progress).toHaveText(/^3 \/ \d+$/);
 
