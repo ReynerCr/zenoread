@@ -19,5 +19,5 @@ test("settings sidebar toggles open and exposes controls", async ({ page }) => {
   // text *content* rather than rendered glyph height, so the smoke test stays
   // robust in headless environments without system fonts installed.
   await expect(sidebar.getByRole("slider").first()).toBeVisible();
-  await expect(sidebar).toContainText("Reading speed (WPM):");
+  await expect(sidebar).toContainText("Reading speed:");
 });

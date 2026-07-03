@@ -58,14 +58,14 @@ export const DEFAULT_USER_SETTINGS: UserSettingsDocType = {
 
 export const userSettingsSchema: RxJsonSchema<UserSettingsDocType> = {
   title: "user settings schema",
-  version: 0,
+  version: 1,
   primaryKey: "id",
   type: "object",
   properties: {
     id: { type: "string", maxLength: 32 },
     wpm_default: { type: "number", minimum: 1, maximum: 2000, multipleOf: 1 },
-    max_words_screen: { type: "number", minimum: 1, maximum: 10, multipleOf: 1 },
-    min_words_screen: { type: "number", minimum: 1, maximum: 10, multipleOf: 1 },
+    max_words_screen: { type: "number", minimum: 1, maximum: 20, multipleOf: 1 },
+    min_words_screen: { type: "number", minimum: 1, maximum: 20, multipleOf: 1 },
     theme: { type: "string", enum: ["light", "dark"] },
     pause_multipliers: {
       type: "object",

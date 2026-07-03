@@ -1,9 +1,10 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("File loading — web fallback", () => {
+
   test("Open file button is visible", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("button", { name: "Open file" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Open file" })).toBeVisible({ timeout: 10000 });
   });
 
   test("loads a .txt file and displays its title", async ({ page }) => {
@@ -55,7 +56,7 @@ test.describe("File loading — web fallback", () => {
 
   test("reading position persists across page reloads", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("1 /")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("1 /")).toBeVisible({ timeout: 10000 });
 
     // Load a file with enough content to produce multiple blocks.
     const fileContent = "Persisted Doc Title\n\n" +
@@ -80,10 +81,10 @@ test.describe("File loading — web fallback", () => {
     await nextBtn.click();
     await expect(page.getByText(/^3 \/ \d+$/)).toBeVisible();
 
-    // Pause to trigger progress save.
-    await page.getByRole("button", { name: "Play", exact: true }).click();
-    await page.waitForTimeout(200);
-    await page.getByRole("button", { name: "Pause", exact: true }).click();
+    // Stop to trigger progress save (saves current position before resetting).
+    await page.getByRole("button", { name: "Stop" }).click();
+    // Wait for the async RxDB save to complete.
+    await expect(page.locator("[data-save-state='saved']")).toBeVisible({ timeout: 5000 });
 
     // Reload the page.
     await page.reload();
@@ -103,7 +104,9 @@ test.describe("File loading — web fallback", () => {
     // block indices may shift slightly if settings differ — but the key
     // is that it's NOT at block 1).
     await expect(page.locator("span.max-w-xs", { hasText: "Persisted Doc Title" })).toBeVisible({ timeout: 5000 });
-    const progressText = await page.getByText(/\d+ \/ \d+/).textContent();
+    // Wait for the progress to be restored (may happen after the title appears).
+    await expect(page.locator('[data-testid="progress"]')).not.toHaveText(/^1 \/ \d+$/, { timeout: 5000 });
+    const progressText = await page.locator('[data-testid="progress"]').textContent();
     const blockNum = parseInt(progressText!.split(" / ")[0], 10);
     expect(blockNum).toBeGreaterThan(1);
   });

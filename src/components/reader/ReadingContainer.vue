@@ -15,6 +15,7 @@ const documentsStore = useDocumentsStore();
 const progressStore = useProgressStore();
 const loadedDocument = ref<ParsedDocument | null>(null);
 const savedDocId = ref<string | null>(null);
+const saveState = ref<"idle" | "saving" | "saved">("idle");
 
 useKeyboardShortcuts({
   onTogglePlayPause: togglePlayPause,
@@ -94,11 +95,19 @@ function togglePlayPause() {
 
 function saveCurrentProgress() {
   if (!savedDocId.value) return;
-  void progressStore.saveProgress(
-    savedDocId.value,
-    playback.currentIndex.value,
-    playback.totalBlocks.value,
-  );
+  saveState.value = "saving";
+  void progressStore
+    .saveProgress(
+      savedDocId.value,
+      playback.currentIndex.value,
+      playback.totalBlocks.value,
+    )
+    .then(() => {
+      saveState.value = "saved";
+    })
+    .catch(() => {
+      saveState.value = "idle";
+    });
 }
 
 function stopAndSave() {
@@ -112,7 +121,7 @@ function handleBeforeUnload() {
   }
 }
 
-// Reload when block-sizing or splitting settings change.
+// Reload when block-sizing or splitting settings change, preserving position.
 watch(
   () => [
     settings.settings.min_words_screen,
@@ -121,7 +130,8 @@ watch(
   ],
   () => {
     if (playback.totalBlocks.value > 0) {
-      loadText(loadedDocument.value?.content_raw ?? SAMPLE_TEXT);
+      const currentIndex = playback.currentIndex.value;
+      loadText(loadedDocument.value?.content_raw ?? SAMPLE_TEXT, currentIndex);
     }
   },
 );
@@ -146,6 +156,7 @@ onBeforeUnmount(() => {
   <section
     class="flex h-full w-full flex-col items-center justify-center bg-zeno-bg px-8"
     aria-label="Reading area"
+    :data-save-state="saveState"
   >
     <!-- Centered word display -->
     <div class="flex flex-1 items-center justify-center">
@@ -176,7 +187,7 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <span v-if="progressLabel" class="text-xs text-zeno-muted tabular-nums">
+      <span v-if="progressLabel" data-testid="progress" class="text-xs text-zeno-muted tabular-nums">
         {{ progressLabel }}
       </span>
       <div class="flex items-center gap-2">

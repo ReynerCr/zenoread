@@ -24,7 +24,7 @@ export interface DocumentDocType {
 
 export const documentsSchema: RxJsonSchema<DocumentDocType> = {
   title: "documents schema",
-  version: 0,
+  version: 1,
   primaryKey: "id",
   type: "object",
   properties: {

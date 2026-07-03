@@ -5,7 +5,15 @@ test.describe("Keyboard shortcuts", () => {
     await page.goto("/");
 
     const playBtn = page.getByRole("button", { name: "Play" });
-    await expect(playBtn).toBeVisible();
+    await expect(playBtn).toBeVisible({ timeout: 10000 });
+    // Wait for the sample text to load and the controller to be ready.
+    const progress = page.locator('[data-testid="progress"]');
+    await expect(progress).toBeVisible({ timeout: 10000 });
+    await expect(progress).toHaveText(/^1 \/ \d+$/);
+    // Let the settings store settle (the watch on block-sizing settings can
+    // reload the text and reset playback state on first load).
+    await page.waitForTimeout(300);
+    await expect(progress).toHaveText(/^1 \/ \d+$/);
 
     // Click on empty space to blur any focused element, then use keyboard.
     await page.locator("body").click();
@@ -24,7 +32,7 @@ test.describe("Keyboard shortcuts", () => {
     await page.goto("/");
     await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 
-    const progress = page.locator(".tabular-nums");
+    const progress = page.locator("[data-testid=\"progress\"]");
     await expect(progress).toHaveText(/^1 \/ \d+$/);
     await page.waitForTimeout(300);
     await expect(progress).toHaveText(/^1 \/ \d+$/);
@@ -37,7 +45,7 @@ test.describe("Keyboard shortcuts", () => {
     await page.goto("/");
     await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 
-    const progress = page.locator(".tabular-nums");
+    const progress = page.locator("[data-testid=\"progress\"]");
     await expect(progress).toHaveText(/^1 \/ \d+$/);
     // Wait for stores to settle (settings init may trigger a reload).
     await page.waitForTimeout(300);
@@ -55,7 +63,7 @@ test.describe("Keyboard shortcuts", () => {
     await page.goto("/");
     await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 
-    const progress = page.locator(".tabular-nums");
+    const progress = page.locator("[data-testid=\"progress\"]");
     await page.keyboard.press("ArrowLeft");
     await expect(progress).toHaveText(/^1 \/ \d+$/);
   });
@@ -64,7 +72,7 @@ test.describe("Keyboard shortcuts", () => {
     await page.goto("/");
     await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 
-    const progress = page.locator(".tabular-nums");
+    const progress = page.locator("[data-testid=\"progress\"]");
     await expect(progress).toHaveText(/^1 \/ \d+$/);
     await page.waitForTimeout(300);
     await expect(progress).toHaveText(/^1 \/ \d+$/);

@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useSettingsStore } from "../../stores/settings";
+import { useDocumentsStore } from "../../stores/documents";
+import { useProgressStore } from "../../stores/progress";
+import { resetDatabase } from "../../db/database";
 import {
   DEFAULT_PAUSE_MULTIPLIERS,
+  DEFAULT_USER_SETTINGS,
   type PauseMultipliers,
 } from "../../db/schemas/userSettings.schema";
+import SliderInput from "../ui/SliderInput.vue";
 
 defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
 
 const settings = useSettingsStore();
+const documentsStore = useDocumentsStore();
+const progressStore = useProgressStore();
 const advancedOpen = ref(false);
 
 const PAUSE_FIELDS: { key: keyof PauseMultipliers; label: string }[] = [
@@ -22,24 +29,19 @@ const PAUSE_FIELDS: { key: keyof PauseMultipliers; label: string }[] = [
   { key: "paragraph", label: "Paragraph" },
 ];
 
-function onWpmInput(event: Event) {
-  const value = Number((event.target as HTMLInputElement).value);
-  if (!Number.isNaN(value)) void settings.update({ wpm_default: value });
+function onWpmChange(value: number) {
+  void settings.update({ wpm_default: value });
 }
 
-function onMaxWordsInput(event: Event) {
-  const value = Number((event.target as HTMLInputElement).value);
-  if (!Number.isNaN(value)) void settings.update({ max_words_screen: value });
+function onMaxWordsChange(value: number) {
+  void settings.update({ max_words_screen: value });
 }
 
-function onFontSizeInput(event: Event) {
-  const value = Number((event.target as HTMLInputElement).value);
-  if (!Number.isNaN(value)) void settings.update({ font_size: value });
+function onFontSizeChange(value: number) {
+  void settings.update({ font_size: value });
 }
 
-function onPauseInput(key: keyof PauseMultipliers, event: Event) {
-  const value = Number((event.target as HTMLInputElement).value);
-  if (Number.isNaN(value)) return;
+function onPauseChange(key: keyof PauseMultipliers, value: number) {
   void settings.update({
     pause_multipliers: { ...settings.settings.pause_multipliers, [key]: value },
   });
@@ -50,6 +52,30 @@ function resetPauses() {
     pause_multipliers: { ...DEFAULT_PAUSE_MULTIPLIERS },
   });
 }
+
+function resetAllSettings() {
+  if (!confirm("Reset all settings to their defaults?")) return;
+  void settings.update({
+    wpm_default: DEFAULT_USER_SETTINGS.wpm_default,
+    max_words_screen: DEFAULT_USER_SETTINGS.max_words_screen,
+    min_words_screen: DEFAULT_USER_SETTINGS.min_words_screen,
+    theme: DEFAULT_USER_SETTINGS.theme,
+    pause_multipliers: { ...DEFAULT_PAUSE_MULTIPLIERS },
+    font_size: DEFAULT_USER_SETTINGS.font_size,
+    font_family: DEFAULT_USER_SETTINGS.font_family,
+    split_on_sentence_end: DEFAULT_USER_SETTINGS.split_on_sentence_end,
+  });
+}
+
+async function resetAppData() {
+  if (!confirm("Delete ALL app data (settings, documents, progress)? This cannot be undone.")) return;
+  await resetDatabase();
+  documentsStore.documents = [];
+  documentsStore.setCurrent(null);
+  progressStore.clearProgress();
+  // Reload to ensure all stores re-initialize from the fresh database.
+  window.location.reload();
+}
 </script>
 
 <template>
@@ -57,6 +83,7 @@ function resetPauses() {
     class="flex h-full flex-col border-l border-zeno-border bg-zeno-surface transition-all duration-200 overflow-hidden"
     :class="open ? 'w-72' : 'w-0'"
     aria-label="Settings"
+    :data-settings-loaded="settings.loaded"
   >
     <div class="flex w-72 flex-col gap-6 p-5">
       <header class="flex items-center justify-between">
@@ -72,50 +99,34 @@ function resetPauses() {
         </button>
       </header>
 
-      <div class="flex flex-col gap-2">
-        <label class="text-xs font-medium text-zeno-muted">
-          Reading speed (WPM): {{ settings.settings.wpm_default }}
-        </label>
-        <input
-          type="range"
-          min="100"
-          max="1000"
-          step="10"
-          :value="settings.settings.wpm_default"
-          class="accent-zeno-accent"
-          @input="onWpmInput"
-        />
-      </div>
+      <SliderInput
+        label="Reading speed"
+        :min="100"
+        :max="1000"
+        :step="10"
+        :model-value="settings.settings.wpm_default"
+        unit="WPM"
+        @update:model-value="onWpmChange"
+      />
 
-      <div class="flex flex-col gap-2">
-        <label class="text-xs font-medium text-zeno-muted">
-          Words per screen: {{ settings.settings.max_words_screen }}
-        </label>
-        <input
-          type="range"
-          min="1"
-          max="5"
-          step="1"
-          :value="settings.settings.max_words_screen"
-          class="accent-zeno-accent"
-          @input="onMaxWordsInput"
-        />
-      </div>
+      <SliderInput
+        label="Words per screen"
+        :min="1"
+        :max="15"
+        :step="1"
+        :model-value="settings.settings.max_words_screen"
+        @update:model-value="onMaxWordsChange"
+      />
 
-      <div class="flex flex-col gap-2">
-        <label class="text-xs font-medium text-zeno-muted">
-          Font size: {{ settings.settings.font_size }}px
-        </label>
-        <input
-          type="range"
-          min="16"
-          max="120"
-          step="2"
-          :value="settings.settings.font_size"
-          class="accent-zeno-accent"
-          @input="onFontSizeInput"
-        />
-      </div>
+      <SliderInput
+        label="Font size"
+        :min="16"
+        :max="120"
+        :step="2"
+        :model-value="settings.settings.font_size"
+        unit="px"
+        @update:model-value="onFontSizeChange"
+      />
 
       <div class="flex items-center justify-between">
         <span class="text-xs font-medium text-zeno-muted">Theme</span>
@@ -169,33 +180,41 @@ function resetPauses() {
             the given punctuation.
           </p>
 
-          <div
+          <SliderInput
             v-for="field in PAUSE_FIELDS"
             :key="field.key"
-            class="flex flex-col gap-1"
-          >
-            <label class="text-xs text-zeno-muted" :for="`pause-${field.key}`">
-              {{ field.label }}: {{ settings.settings.pause_multipliers[field.key] }}x
-            </label>
-            <input
-              :id="`pause-${field.key}`"
-              type="range"
-              min="1"
-              max="5"
-              step="0.1"
-              :value="settings.settings.pause_multipliers[field.key]"
-              class="accent-zeno-accent"
-              @input="onPauseInput(field.key, $event)"
-            />
-          </div>
+            :label="field.label"
+            :min="1"
+            :max="5"
+            :step="0.1"
+            :model-value="settings.settings.pause_multipliers[field.key]"
+            unit="x"
+            @update:model-value="(v: number) => onPauseChange(field.key, v)"
+          />
 
           <button
             class="rounded-md border border-zeno-border px-3 py-1.5 text-xs text-zeno-muted hover:text-zeno-text"
             @click="resetPauses"
           >
-            Reset to defaults
+            Reset pauses to defaults
           </button>
         </div>
+      </div>
+
+      <!-- Danger zone: reset settings + reset app data -->
+      <div class="flex flex-col gap-2 border-t border-zeno-border pt-4">
+        <button
+          class="rounded-md border border-zeno-border px-3 py-1.5 text-xs text-zeno-muted hover:text-zeno-text"
+          @click="resetAllSettings"
+        >
+          Reset all settings
+        </button>
+        <button
+          class="rounded-md border border-red-500/40 px-3 py-1.5 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-400"
+          @click="resetAppData"
+        >
+          Delete all app data
+        </button>
       </div>
     </div>
   </aside>

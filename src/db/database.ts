@@ -6,9 +6,11 @@ import {
   type RxStorage,
 } from "rxdb";
 import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
+import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
 
 import {
   userSettingsSchema,
+  DEFAULT_USER_SETTINGS,
   type UserSettingsDocType,
 } from "./schemas/userSettings.schema";
 import {
@@ -52,6 +54,8 @@ async function createDatabase(): Promise<ZenoDatabase> {
     storage = wrappedValidateAjvStorage({ storage });
   }
 
+  addRxPlugin(RxDBMigrationSchemaPlugin);
+
   const db = await createRxDatabase<ZenoCollections>({
     name: DB_NAME,
     storage,
@@ -60,8 +64,23 @@ async function createDatabase(): Promise<ZenoDatabase> {
   });
 
   await db.addCollections({
-    user_settings: { schema: userSettingsSchema },
-    documents: { schema: documentsSchema },
+    user_settings: {
+      schema: userSettingsSchema,
+      migrationStrategies: {
+        1: (doc) => doc, // v0→v1: widened max_words_screen maximum, no data transform needed.
+      },
+    },
+    documents: {
+      schema: documentsSchema,
+      migrationStrategies: {
+        1: (doc) => {
+          // v0→v1: removed content_raw field (content is now read from disk).
+          const { content_raw, ...rest } = doc as Record<string, unknown>;
+          void content_raw;
+          return rest;
+        },
+      },
+    },
     reading_progress: { schema: readingProgressSchema },
   });
 
@@ -77,4 +96,21 @@ export function getDatabase(): Promise<ZenoDatabase> {
     dbPromise = createDatabase();
   }
   return dbPromise;
+}
+
+/**
+ * Removes all documents from every collection and re-seeds the default settings.
+ * Used by the "Reset app data" button so users (and developers) can clear
+ * stale data after schema changes without manually hunting for IndexedDB files.
+ */
+export async function resetDatabase(): Promise<void> {
+  const db = await getDatabase();
+
+  for (const collection of [db.documents, db.reading_progress, db.user_settings]) {
+    const docs = await collection.find().exec();
+    await Promise.all(docs.map((d) => d.remove()));
+  }
+
+  // Re-seed default settings so the app remains usable immediately.
+  await db.user_settings.insert({ ...DEFAULT_USER_SETTINGS });
 }
