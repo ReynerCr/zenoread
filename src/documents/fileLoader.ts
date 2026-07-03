@@ -43,7 +43,8 @@ export async function loadDocumentFromDialog(): Promise<ParsedDocument | null> {
 
 /**
  * Reads a file from disk by its path and parses it. Used when re-opening a
- * document from the library (Tauri only — web mode cannot access disk paths).
+ * document from the library or when a file is dropped onto the window in
+ * Tauri mode (where we get a path, not a File object).
  */
 export async function loadDocumentFromPath(
   filePath: string,
@@ -66,6 +67,35 @@ export async function loadDocumentFromPath(
     });
   } catch (error) {
     reportError(error, "Could not read the file from disk.");
+    return null;
+  }
+}
+
+/**
+ * Parses a browser File object (from drag-and-drop or file input). Used in
+ * web mode where we can't access disk paths directly.
+ */
+export async function loadDocumentFromFile(file: File): Promise<ParsedDocument | null> {
+  try {
+    const fileType = detectFileType(file.name);
+    if (!fileType) {
+      reportError(new Error(`Unsupported file type: ${file.name}`));
+      return null;
+    }
+    const parser = parserRegistry.getParser(fileType);
+    if (!parser) {
+      reportError(new Error(`No parser for .${fileType} files yet.`));
+      return null;
+    }
+    const raw = await file.text();
+    return parser.parse(raw, {
+      title: titleFromFilename(file.name),
+      file_path: file.name,
+      file_type: fileType,
+      language: "en",
+    });
+  } catch (error) {
+    reportError(error, "Could not read the dropped file.");
     return null;
   }
 }
@@ -113,26 +143,7 @@ async function loadFromWebInput(): Promise<ParsedDocument | null> {
         resolve(null);
         return;
       }
-      const fileType = detectFileType(file.name);
-      if (!fileType) {
-        reportError(new Error(`Unsupported file type: ${file.name}`));
-        resolve(null);
-        return;
-      }
-      const parser = parserRegistry.getParser(fileType);
-      if (!parser) {
-        reportError(new Error(`No parser for .${fileType} files yet.`));
-        resolve(null);
-        return;
-      }
-      const raw = await file.text();
-      const result = parser.parse(raw, {
-        title: titleFromFilename(file.name),
-        file_path: file.name,
-        file_type: fileType,
-        language: "en",
-      });
-      resolve(result);
+      resolve(await loadDocumentFromFile(file));
     };
     input.click();
   });

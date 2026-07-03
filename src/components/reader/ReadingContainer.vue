@@ -3,6 +3,7 @@ import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useSettingsStore } from "../../stores/settings";
 import { usePlayback } from "../../composables/usePlayback";
 import { useKeyboardShortcuts } from "../../composables/useKeyboardShortcuts";
+import { useDragDrop } from "../../composables/useDragDrop";
 import { segmentIntoBlocks } from "../../parsing/parser";
 import { loadDocumentFromDialog, loadDocumentFromPath } from "../../documents/fileLoader";
 import type { ParsedDocument } from "../../documents/types";
@@ -17,6 +18,7 @@ const progressStore = useProgressStore();
 const loadedDocument = ref<ParsedDocument | null>(null);
 const savedDocId = ref<string | null>(null);
 const saveState = ref<"idle" | "saving" | "saved">("idle");
+const dropZoneRef = ref<HTMLElement | null>(null);
 
 useKeyboardShortcuts({
   onTogglePlayPause: togglePlayPause,
@@ -102,6 +104,8 @@ async function openParsedDocument(doc: ParsedDocument) {
   loadText(doc.content_raw, startIndex);
 }
 
+const { isDragOver } = useDragDrop(dropZoneRef, (doc) => void openParsedDocument(doc));
+
 function togglePlayPause() {
   if (isPlaying.value) {
     playback.pause();
@@ -179,10 +183,20 @@ onBeforeUnmount(() => {
 
 <template>
   <section
-    class="flex h-full w-full flex-col items-center justify-center bg-zeno-bg px-8"
+    ref="dropZoneRef"
+    class="flex h-full w-full flex-col items-center justify-center bg-zeno-bg px-8 relative"
     aria-label="Reading area"
     :data-save-state="saveState"
   >
+    <!-- Drag-and-drop overlay -->
+    <div
+      v-if="isDragOver"
+      class="absolute inset-0 z-10 flex items-center justify-center bg-zeno-accent/10 border-2 border-dashed border-zeno-accent rounded-lg"
+      data-testid="drop-overlay"
+    >
+      <span class="text-sm font-medium text-zeno-accent">Drop file to open</span>
+    </div>
+
     <!-- Centered word display -->
     <div class="flex flex-1 items-center justify-center">
       <p
