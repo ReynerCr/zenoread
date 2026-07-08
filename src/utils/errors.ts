@@ -1,10 +1,7 @@
 import { useNotificationsStore } from "../stores/notifications";
+import { logError, type ErrorSeverity } from "./logger";
 
-/**
- * Application-level error carrying a message that is safe to show to the user.
- */
 export class AppError extends Error {
-  /** Message intended for display in the UI. */
   readonly userMessage: string;
 
   constructor(userMessage: string, options?: { cause?: unknown }) {
@@ -14,7 +11,6 @@ export class AppError extends Error {
   }
 }
 
-/** Best-effort extraction of a readable message from an unknown thrown value. */
 export function toMessage(error: unknown): string {
   if (error instanceof AppError) return error.userMessage;
   if (error instanceof Error) return error.message;
@@ -22,13 +18,36 @@ export function toMessage(error: unknown): string {
   return "An unexpected error occurred.";
 }
 
+function toTechnicalMessage(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
 /**
- * Logs an error for debugging and surfaces a user-friendly message through the
- * notifications store. This is the single entry point for MVP error handling.
+ * Logs an error to the console and optionally to a file (if --log flag is
+ * active), and surfaces a user-friendly message through the notifications
+ * store. This is the single entry point for error handling.
  */
-export function reportError(error: unknown, userMessage?: string): void {
-  // eslint-disable-next-line no-console
-  console.error("[ZenoRead]", error);
+export function reportError(
+  error: unknown,
+  userMessage?: string,
+  options?: { severity?: ErrorSeverity; context?: string },
+): void {
+  const severity = options?.severity ?? "error";
+  const context = options?.context ?? "unknown";
   const message = userMessage ?? toMessage(error);
-  useNotificationsStore().push(message, "error");
+  const technical = toTechnicalMessage(error);
+
+  try {
+    useNotificationsStore().push(message, severity === "warning" ? "info" : "error");
+  } catch {
+    // Pinia not yet initialized.
+  }
+
+  void logError(severity, message, technical, context);
 }

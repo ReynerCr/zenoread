@@ -44,7 +44,7 @@ export const useSettingsStore = defineStore("settings", () => {
 
       loaded.value = true;
     } catch (error) {
-      reportError(error, "Could not load your settings. Using defaults.");
+      reportError(error, "Could not load your settings. Using defaults.", { context: "settings.init" });
       // Fall back to defaults so the app remains usable.
       settings.value = { ...DEFAULT_USER_SETTINGS };
       loaded.value = true;
@@ -64,7 +64,7 @@ export const useSettingsStore = defineStore("settings", () => {
         await db.user_settings.insert({ ...settings.value });
       }
     } catch (error) {
-      reportError(error, "Could not save your settings.");
+      reportError(error, "Could not save your settings.", { context: "settings.flushSave" });
     }
   }
 
