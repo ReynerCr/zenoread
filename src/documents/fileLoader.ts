@@ -1,5 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { readTextFile } from "@tauri-apps/plugin-fs";
+import { readTextFile, readFile } from "@tauri-apps/plugin-fs";
 import { parserRegistry } from "./parserRegistry";
 import type { ParsedDocument } from "./types";
 import type { FileType } from "../db/schemas/documents.schema";
@@ -13,10 +13,16 @@ const EXTENSION_TO_TYPE: Record<string, FileType> = {
   epub: "epub",
 };
 
+const BINARY_TYPES: ReadonlySet<FileType> = new Set(["pdf", "epub"]);
+
 function detectFileType(filename: string): FileType | null {
   const ext = filename.split(".").pop()?.toLowerCase();
   if (!ext) return null;
   return EXTENSION_TO_TYPE[ext] ?? null;
+}
+
+function isBinaryType(fileType: FileType): boolean {
+  return BINARY_TYPES.has(fileType);
 }
 
 function titleFromFilename(filename: string): string {
@@ -24,9 +30,23 @@ function titleFromFilename(filename: string): string {
   return base.replace(/\.[^.]+$/, "");
 }
 
+async function readFileFromPath(filePath: string, fileType: FileType): Promise<string | Uint8Array> {
+  if (isBinaryType(fileType)) {
+    return await readFile(filePath);
+  }
+  return await readTextFile(filePath);
+}
+
+async function readFileFromBlob(file: File, fileType: FileType): Promise<string | Uint8Array> {
+  if (isBinaryType(fileType)) {
+    return new Uint8Array(await file.arrayBuffer());
+  }
+  return await file.text();
+}
+
 /**
  * Opens a native file dialog (Tauri) or a hidden file input (web fallback),
- * reads the selected file as text, and runs it through the appropriate parser.
+ * reads the selected file, and runs it through the appropriate parser.
  * Returns null if the user cancels or no file is selected.
  */
 export async function loadDocumentFromDialog(): Promise<ParsedDocument | null> {
@@ -57,9 +77,9 @@ export async function loadDocumentFromPath(
       reportError(new Error(`No parser for .${fileType} files yet.`), undefined, { context: "fileLoader.loadDocumentFromPath" });
       return null;
     }
-    const raw = await readTextFile(filePath);
+    const raw = await readFileFromPath(filePath, fileType);
     const filename = filePath.split("/").pop() ?? filePath;
-    return parser.parse(raw, {
+    return await parser.parse(raw, {
       title: titleFromFilename(filename),
       file_path: filePath,
       file_type: fileType,
@@ -87,8 +107,8 @@ export async function loadDocumentFromFile(file: File): Promise<ParsedDocument |
       reportError(new Error(`No parser for .${fileType} files yet.`), undefined, { context: "fileLoader.loadDocumentFromFile" });
       return null;
     }
-    const raw = await file.text();
-    return parser.parse(raw, {
+    const raw = await readFileFromBlob(file, fileType);
+    return await parser.parse(raw, {
       title: titleFromFilename(file.name),
       file_path: file.name,
       file_type: fileType,
@@ -103,7 +123,10 @@ export async function loadDocumentFromFile(file: File): Promise<ParsedDocument |
 async function loadFromTauriDialog(): Promise<ParsedDocument | null> {
   const selected = await open({
     multiple: false,
-    filters: [{ name: "Text files", extensions: ["txt"] }],
+    filters: [
+      { name: "Text files", extensions: ["txt"] },
+      { name: "PDF files", extensions: ["pdf"] },
+    ],
   });
   if (!selected) return null;
 
@@ -122,8 +145,8 @@ async function loadFromTauriDialog(): Promise<ParsedDocument | null> {
     return null;
   }
 
-  const raw = await readTextFile(filePath);
-  return parser.parse(raw, {
+  const raw = await readFileFromPath(filePath, fileType);
+  return await parser.parse(raw, {
     title: titleFromFilename(filename),
     file_path: filePath,
     file_type: fileType,
@@ -135,7 +158,7 @@ async function loadFromWebInput(): Promise<ParsedDocument | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = ".txt,text/plain";
+    input.accept = ".txt,text/plain,.pdf,application/pdf";
     input.style.display = "none";
     input.onchange = async () => {
       const file = input.files?.[0];
