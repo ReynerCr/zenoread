@@ -6,10 +6,15 @@ let pdfjsLibPromise: Promise<typeof import("pdfjs-dist")> | null = null;
 async function getPdfjsLib(): Promise<typeof import("pdfjs-dist")> {
   if (!pdfjsLibPromise) {
     pdfjsLibPromise = import("pdfjs-dist").then(async (lib) => {
-      const { default: PdfWorker } = await import(
-        "pdfjs-dist/build/pdf.worker.min.mjs?worker"
-      );
-      lib.GlobalWorkerOptions.workerPort = new PdfWorker();
+      try {
+        const { default: PdfWorker } = await import(
+          "pdfjs-dist/build/pdf.worker.min.mjs?worker"
+        );
+        lib.GlobalWorkerOptions.workerPort = new PdfWorker();
+      } catch {
+        // Worker setup failed (e.g. in test environment). pdf.js will
+        // fall back to running in the main thread.
+      }
       return lib;
     });
   }
