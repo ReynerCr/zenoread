@@ -9,7 +9,7 @@ import type { FileType } from "../db/schemas/documents.schema";
 export class TxtParser implements DocumentParser {
   readonly supportedTypes: FileType[] = ["txt"];
 
-  parse(raw: string | Uint8Array, metadata: DocumentMetadata): ParsedDocument {
+  async parse(raw: string | Uint8Array, metadata: DocumentMetadata): Promise<ParsedDocument> {
     const content = typeof raw === "string" ? raw : new TextDecoder().decode(raw);
     const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
 

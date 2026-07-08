@@ -1,6 +1,7 @@
 import type { DocumentParser } from "./types";
 import type { FileType } from "../db/schemas/documents.schema";
 import { TxtParser } from "./txtParser";
+import { PdfParser } from "./pdfParser";
 
 /**
  * Maps file types to their parsers. New formats are added by registering a
@@ -26,5 +27,5 @@ class ParserRegistry {
 
 export const parserRegistry = new ParserRegistry();
 
-// Pre-register the built-in parsers.
 parserRegistry.registerParser(new TxtParser());
+parserRegistry.registerParser(new PdfParser());

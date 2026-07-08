@@ -23,5 +23,5 @@ export interface ParsedDocument {
  */
 export interface DocumentParser {
   readonly supportedTypes: FileType[];
-  parse(raw: string | Uint8Array, metadata: DocumentMetadata): ParsedDocument;
+  parse(raw: string | Uint8Array, metadata: DocumentMetadata): Promise<ParsedDocument>;
 }
