@@ -14,6 +14,7 @@ export const useDocumentsStore = defineStore("documents", () => {
   const documents = ref<DocumentDocType[]>([]);
   const currentDocument = ref<DocumentDocType | null>(null);
   const loaded = ref(false);
+  const isLoading = ref(false);
 
   async function init(): Promise<void> {
     if (loaded.value) return;
@@ -125,6 +126,7 @@ export const useDocumentsStore = defineStore("documents", () => {
     documents,
     currentDocument,
     loaded,
+    isLoading,
     init,
     saveDocument,
     getDocument,

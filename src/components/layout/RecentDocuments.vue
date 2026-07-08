@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { storeToRefs } from "pinia";
 import { useDocumentsStore } from "../../stores/documents";
 import { isTauri } from "../../utils/platform";
 
@@ -7,6 +8,7 @@ defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
 
 const documentsStore = useDocumentsStore();
+const { isLoading } = storeToRefs(documentsStore);
 
 const sortedDocs = computed(() =>
   [...documentsStore.documents].sort(
@@ -71,8 +73,9 @@ function handleOpenDoc(docId: string) {
       <ul v-else class="flex flex-col gap-1 overflow-y-auto">
         <li v-for="doc in sortedDocs" :key="doc.id">
           <button
-            class="flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left hover:bg-zeno-bg"
+            class="flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left hover:bg-zeno-bg disabled:opacity-50 disabled:cursor-not-allowed"
             :aria-label="`Open ${doc.title}`"
+            :disabled="isLoading"
             @click="handleOpenDoc(doc.id)"
           >
             <span class="truncate text-xs font-medium text-zeno-text">{{ doc.title }}</span>
