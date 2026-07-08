@@ -10,9 +10,7 @@ export interface Notification {
 }
 
 /**
- * Minimal, MVP-level notification + error surface. Components subscribe to the
- * list to display toasts/banners. A fuller error-handling system (logging,
- * recovery mode, graceful degradation) is planned for Phase 4.
+ * Holds transient notifications (toasts/banners) for the UI.
  */
 export const useNotificationsStore = defineStore("notifications", () => {
   const items = ref<Notification[]>([]);

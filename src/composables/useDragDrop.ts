@@ -54,7 +54,7 @@ export function useDragDrop(
   async function handleTauriDrop(filePath: string) {
     const fileType = detectFileType(filePath);
     if (!fileType) {
-      reportError(new Error(`Unsupported file type: ${filePath}`));
+      reportError(new Error(`Unsupported file type: ${filePath}`), undefined, { context: "useDragDrop.handleTauriDrop" });
       return;
     }
     const doc = await loadDocumentFromPath(filePath, fileType, "en");

@@ -36,7 +36,7 @@ export async function loadDocumentFromDialog(): Promise<ParsedDocument | null> {
     }
     return await loadFromWebInput();
   } catch (error) {
-    reportError(error, "Could not load the file.");
+    reportError(error, "Could not load the file.", { context: "fileLoader.loadDocumentFromDialog" });
     return null;
   }
 }
@@ -54,7 +54,7 @@ export async function loadDocumentFromPath(
   try {
     const parser = parserRegistry.getParser(fileType);
     if (!parser) {
-      reportError(new Error(`No parser for .${fileType} files yet.`));
+      reportError(new Error(`No parser for .${fileType} files yet.`), undefined, { context: "fileLoader.loadDocumentFromPath" });
       return null;
     }
     const raw = await readTextFile(filePath);
@@ -66,7 +66,7 @@ export async function loadDocumentFromPath(
       language,
     });
   } catch (error) {
-    reportError(error, "Could not read the file from disk.");
+    reportError(error, "Could not read the file from disk.", { context: "fileLoader.loadDocumentFromPath" });
     return null;
   }
 }
@@ -79,12 +79,12 @@ export async function loadDocumentFromFile(file: File): Promise<ParsedDocument |
   try {
     const fileType = detectFileType(file.name);
     if (!fileType) {
-      reportError(new Error(`Unsupported file type: ${file.name}`));
+      reportError(new Error(`Unsupported file type: ${file.name}`), undefined, { context: "fileLoader.loadDocumentFromFile" });
       return null;
     }
     const parser = parserRegistry.getParser(fileType);
     if (!parser) {
-      reportError(new Error(`No parser for .${fileType} files yet.`));
+      reportError(new Error(`No parser for .${fileType} files yet.`), undefined, { context: "fileLoader.loadDocumentFromFile" });
       return null;
     }
     const raw = await file.text();
@@ -95,7 +95,7 @@ export async function loadDocumentFromFile(file: File): Promise<ParsedDocument |
       language: "en",
     });
   } catch (error) {
-    reportError(error, "Could not read the dropped file.");
+    reportError(error, "Could not read the dropped file.", { context: "fileLoader.loadDocumentFromFile" });
     return null;
   }
 }
@@ -112,13 +112,13 @@ async function loadFromTauriDialog(): Promise<ParsedDocument | null> {
   const filename = filePath.split("/").pop() ?? filePath;
   const fileType = detectFileType(filename);
   if (!fileType) {
-    reportError(new Error(`Unsupported file type: ${filename}`));
+    reportError(new Error(`Unsupported file type: ${filename}`), undefined, { context: "fileLoader.loadFromTauriDialog" });
     return null;
   }
 
   const parser = parserRegistry.getParser(fileType);
   if (!parser) {
-    reportError(new Error(`No parser for .${fileType} files yet.`));
+    reportError(new Error(`No parser for .${fileType} files yet.`), undefined, { context: "fileLoader.loadFromTauriDialog" });
     return null;
   }
 

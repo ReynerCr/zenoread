@@ -40,7 +40,7 @@ export const useDocumentsStore = defineStore("documents", () => {
 
       loaded.value = true;
     } catch (error) {
-      reportError(error, "Could not load your document library.");
+      reportError(error, "Could not load your document library.", { context: "documents.init" });
       loaded.value = true;
     }
   }
@@ -86,7 +86,7 @@ export const useDocumentsStore = defineStore("documents", () => {
       currentDocument.value = doc;
       return doc;
     } catch (error) {
-      reportError(error, "Could not save the document.");
+      reportError(error, "Could not save the document.", { context: "documents.saveDocument" });
       return null;
     }
   }
@@ -97,7 +97,7 @@ export const useDocumentsStore = defineStore("documents", () => {
       const doc = await db.documents.findOne({ selector: { id } }).exec();
       return doc ? (doc.toJSON() as DocumentDocType) : null;
     } catch (error) {
-      reportError(error, "Could not retrieve the document.");
+      reportError(error, "Could not retrieve the document.", { context: "documents.getDocument" });
       return null;
     }
   }
@@ -113,7 +113,7 @@ export const useDocumentsStore = defineStore("documents", () => {
         }
       }
     } catch (error) {
-      reportError(error, "Could not delete the document.");
+      reportError(error, "Could not delete the document.", { context: "documents.deleteDocument" });
     }
   }
 

@@ -37,7 +37,7 @@ export const useProgressStore = defineStore("progress", () => {
       currentProgress.value = null;
       return 0;
     } catch (error) {
-      reportError(error, "Could not load your reading progress.");
+      reportError(error, "Could not load your reading progress.", { context: "progress.loadProgress" });
       return 0;
     }
   }
@@ -81,7 +81,7 @@ export const useProgressStore = defineStore("progress", () => {
         currentProgress.value = newProgress;
       }
     } catch (error) {
-      reportError(error, "Could not save your reading progress.");
+      reportError(error, "Could not save your reading progress.", { context: "progress.saveProgress" });
     }
   }
 
