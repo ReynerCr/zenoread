@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
+import { storeToRefs } from "pinia";
 import { useSettingsStore } from "../../stores/settings";
 import { usePlayback } from "../../composables/usePlayback";
 import { useKeyboardShortcuts } from "../../composables/useKeyboardShortcuts";
@@ -14,6 +15,7 @@ import { isTauri } from "../../utils/platform";
 const settings = useSettingsStore();
 const playback = usePlayback();
 const documentsStore = useDocumentsStore();
+const { isLoading } = storeToRefs(documentsStore);
 const progressStore = useProgressStore();
 const loadedDocument = ref<ParsedDocument | null>(null);
 const savedDocId = ref<string | null>(null);
@@ -73,22 +75,34 @@ function loadSample() {
 }
 
 async function openFile() {
-  const doc = await loadDocumentFromDialog();
-  if (!doc) return;
-  await openParsedDocument(doc);
+  if (isLoading.value) return;
+  isLoading.value = true;
+  try {
+    const doc = await loadDocumentFromDialog();
+    if (!doc) return;
+    await openParsedDocument(doc);
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 async function openFromLibrary(docId: string) {
-  const meta = await documentsStore.getDocument(docId);
-  if (!meta) return;
+  if (isLoading.value) return;
+  isLoading.value = true;
+  try {
+    const meta = await documentsStore.getDocument(docId);
+    if (!meta) return;
 
-  if (isTauri()) {
-    const doc = await loadDocumentFromPath(meta.file_path, meta.file_type, meta.language);
-    if (!doc) return;
-    await openParsedDocument(doc);
-  } else {
-    // Web mode cannot read from disk paths — re-open via file dialog.
-    await openFile();
+    if (isTauri()) {
+      const doc = await loadDocumentFromPath(meta.file_path, meta.file_type, meta.language);
+      if (!doc) return;
+      await openParsedDocument(doc);
+    } else {
+      // Web mode cannot read from disk paths — re-open via file dialog.
+      await openFile();
+    }
+  } finally {
+    isLoading.value = false;
   }
 }
 
@@ -104,7 +118,19 @@ async function openParsedDocument(doc: ParsedDocument) {
   loadText(doc.content_raw, startIndex);
 }
 
-const { isDragOver } = useDragDrop(dropZoneRef, (doc) => void openParsedDocument(doc));
+const { isDragOver } = useDragDrop(
+  dropZoneRef,
+  async (doc) => {
+    if (isLoading.value) return;
+    isLoading.value = true;
+    try {
+      await openParsedDocument(doc);
+    } finally {
+      isLoading.value = false;
+    }
+  },
+  isLoading,
+);
 
 function togglePlayPause() {
   if (isPlaying.value) {
@@ -199,8 +225,12 @@ onBeforeUnmount(() => {
 
     <!-- Centered word display -->
     <div class="flex flex-1 items-center justify-center">
+      <div v-if="isLoading" data-testid="loading-indicator" class="flex flex-col items-center gap-2">
+        <div class="h-6 w-6 animate-spin rounded-full border-2 border-zeno-border border-t-zeno-accent"></div>
+        <span class="text-sm text-zeno-muted">Loading...</span>
+      </div>
       <p
-        v-if="displayText"
+        v-else-if="displayText"
         class="font-semibold tracking-wide text-zeno-text select-none text-center"
         :style="wordStyle"
       >
@@ -218,8 +248,9 @@ onBeforeUnmount(() => {
           {{ loadedDocument?.title }}
         </span>
         <button
-          class="rounded-md border border-zeno-border px-3 py-1 text-xs text-zeno-muted hover:text-zeno-text"
+          class="rounded-md border border-zeno-border px-3 py-1 text-xs text-zeno-muted hover:text-zeno-text disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Open file"
+          :disabled="isLoading"
           @click="openFile"
         >
           Open file

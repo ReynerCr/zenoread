@@ -3,6 +3,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import ReadingContainer from "./ReadingContainer.vue";
 import { useSettingsStore } from "../../stores/settings";
+import { useDocumentsStore } from "../../stores/documents";
 
 // Mount the component with a fresh Pinia and initialized settings store.
 async function mountReader() {
@@ -130,5 +131,21 @@ describe("ReadingContainer — navigation", () => {
     await wrapper.find('button[aria-label="Previous block"]').trigger("click");
     await flushPromises();
     expect(wrapper.find(".tabular-nums").text()).toMatch(/^1 \/ /);
+  });
+});
+
+describe("ReadingContainer — loading state", () => {
+  it("shows loading indicator and disables open button when isLoading is true", async () => {
+    const { wrapper } = await mountReader();
+    const documentsStore = useDocumentsStore();
+    documentsStore.isLoading = true;
+    await flushPromises();
+    expect(wrapper.find('[data-testid="loading-indicator"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Open file"]').attributes("disabled")).toBeDefined();
+  });
+
+  it("does not show loading indicator by default", async () => {
+    const { wrapper } = await mountReader();
+    expect(wrapper.find('[data-testid="loading-indicator"]').exists()).toBe(false);
   });
 });

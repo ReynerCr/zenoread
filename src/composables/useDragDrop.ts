@@ -29,6 +29,7 @@ function detectFileType(filename: string): FileType | null {
 export function useDragDrop(
   target: Ref<HTMLElement | null>,
   onLoaded: (doc: ParsedDocument) => void,
+  isLoading?: Ref<boolean>,
 ) {
   const isDragOver = ref(false);
 
@@ -38,6 +39,7 @@ export function useDragDrop(
   async function setupTauri() {
     const { getCurrentWebview } = await import("@tauri-apps/api/webview");
     unlistenTauri = await getCurrentWebview().onDragDropEvent((event) => {
+      if (isLoading?.value) return;
       if (event.payload.type === "enter" || event.payload.type === "over") {
         isDragOver.value = true;
       } else if (event.payload.type === "leave") {
@@ -63,6 +65,7 @@ export function useDragDrop(
 
   // --- Web path ---
   function onDragOver(e: DragEvent) {
+    if (isLoading?.value) return;
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
     isDragOver.value = true;
@@ -76,6 +79,7 @@ export function useDragDrop(
   async function onDrop(e: DragEvent) {
     e.preventDefault();
     isDragOver.value = false;
+    if (isLoading?.value) return;
     const file = e.dataTransfer?.files?.[0];
     if (!file) return;
     const doc = await loadDocumentFromFile(file);
