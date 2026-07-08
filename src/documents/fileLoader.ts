@@ -4,7 +4,7 @@ import { parserRegistry } from "./parserRegistry";
 import type { ParsedDocument } from "./types";
 import type { FileType } from "../db/schemas/documents.schema";
 import { isTauri } from "../utils/platform";
-import { reportError } from "../utils/errors";
+import { reportError, AppError } from "../utils/errors";
 
 const EXTENSION_TO_TYPE: Record<string, FileType> = {
   txt: "txt",
@@ -44,6 +44,20 @@ async function readFileFromBlob(file: File, fileType: FileType): Promise<string 
   return await file.text();
 }
 
+function emptyContentError(fileType: FileType): AppError {
+  if (fileType === "pdf") {
+    return new AppError("This PDF doesn't contain a text layer. It may be a scanned document.");
+  }
+  return new AppError("The file appears to be empty.");
+}
+
+export function validateContent(doc: ParsedDocument): ParsedDocument {
+  if (doc.content_raw.trim().length === 0) {
+    throw emptyContentError(doc.file_type);
+  }
+  return doc;
+}
+
 /**
  * Opens a native file dialog (Tauri) or a hidden file input (web fallback),
  * reads the selected file, and runs it through the appropriate parser.
@@ -56,7 +70,7 @@ export async function loadDocumentFromDialog(): Promise<ParsedDocument | null> {
     }
     return await loadFromWebInput();
   } catch (error) {
-    reportError(error, "Could not load the file.", { context: "fileLoader.loadDocumentFromDialog" });
+    reportError(error, error instanceof AppError ? undefined : "Could not load the file.", { context: "fileLoader.loadDocumentFromDialog" });
     return null;
   }
 }
@@ -79,14 +93,14 @@ export async function loadDocumentFromPath(
     }
     const raw = await readFileFromPath(filePath, fileType);
     const filename = filePath.split("/").pop() ?? filePath;
-    return await parser.parse(raw, {
+    return validateContent(await parser.parse(raw, {
       title: titleFromFilename(filename),
       file_path: filePath,
       file_type: fileType,
       language,
-    });
+    }));
   } catch (error) {
-    reportError(error, "Could not read the file from disk.", { context: "fileLoader.loadDocumentFromPath" });
+    reportError(error, error instanceof AppError ? undefined : "Could not read the file from disk.", { context: "fileLoader.loadDocumentFromPath" });
     return null;
   }
 }
@@ -108,14 +122,14 @@ export async function loadDocumentFromFile(file: File): Promise<ParsedDocument |
       return null;
     }
     const raw = await readFileFromBlob(file, fileType);
-    return await parser.parse(raw, {
+    return validateContent(await parser.parse(raw, {
       title: titleFromFilename(file.name),
       file_path: file.name,
       file_type: fileType,
       language: "en",
-    });
+    }));
   } catch (error) {
-    reportError(error, "Could not read the dropped file.", { context: "fileLoader.loadDocumentFromFile" });
+    reportError(error, error instanceof AppError ? undefined : "Could not read the dropped file.", { context: "fileLoader.loadDocumentFromFile" });
     return null;
   }
 }
@@ -146,12 +160,12 @@ async function loadFromTauriDialog(): Promise<ParsedDocument | null> {
   }
 
   const raw = await readFileFromPath(filePath, fileType);
-  return await parser.parse(raw, {
+  return validateContent(await parser.parse(raw, {
     title: titleFromFilename(filename),
     file_path: filePath,
     file_type: fileType,
     language: "en",
-  });
+  }));
 }
 
 async function loadFromWebInput(): Promise<ParsedDocument | null> {
