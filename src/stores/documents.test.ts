@@ -26,8 +26,6 @@ import type { ParsedDocument } from "../documents/types";
 
 const PARSED_DOC: ParsedDocument = {
   title: "Test Document",
-  content_raw: "Hello world. This is a test.",
-  total_words: 6,
   file_path: "/home/user/test.txt",
   file_type: "txt",
   language: "en",

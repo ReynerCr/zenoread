@@ -13,38 +13,33 @@ const meta = (over: Partial<DocumentMetadata> = {}): DocumentMetadata => ({
 });
 
 describe("TxtParser — basic parsing", () => {
-  it("parses plain text and counts words", async () => {
+  it("parses plain text and returns a streamer", async () => {
     const result = await parser.parse("Hello world from ZenoRead", meta());
-    expect(result.content_raw).toBe("Hello world from ZenoRead");
-    expect(result.total_words).toBe(4);
     expect(result.file_type).toBe("txt");
-    expect(result.streamer).toBeDefined();
-    expect(result.streamer!.sectionCount).toBe(1);
-    expect(await result.streamer!.loadSection(0)).toBe("Hello world from ZenoRead");
+    expect(result.streamer.sectionCount).toBe(1);
+    expect(await result.streamer.loadSection(0)).toBe("Hello world from ZenoRead");
   });
 
   it("normalizes CRLF and CR line endings to LF", async () => {
     const result = await parser.parse("line one\r\nline two\rline three", meta());
-    expect(result.content_raw).toBe("line one\nline two\nline three");
+    expect(await result.streamer.loadSection(0)).toBe("line one\nline two\nline three");
   });
 
   it("trims leading/trailing whitespace", async () => {
     const result = await parser.parse("  \n  Hello world  \n  ", meta());
-    expect(result.content_raw).toBe("Hello world");
+    expect(await result.streamer.loadSection(0)).toBe("Hello world");
   });
 
   it("handles empty input", async () => {
     const result = await parser.parse("   \n\n  ", meta());
-    expect(result.content_raw).toBe("");
-    expect(result.total_words).toBe(0);
+    expect(await result.streamer.loadSection(0)).toBe("");
     expect(result.title).toBe("fallback.txt");
   });
 
   it("accepts Uint8Array input", async () => {
     const encoder = new TextEncoder();
     const result = await parser.parse(encoder.encode("Hello world"), meta());
-    expect(result.content_raw).toBe("Hello world");
-    expect(result.total_words).toBe(2);
+    expect(await result.streamer.loadSection(0)).toBe("Hello world");
   });
 });
 

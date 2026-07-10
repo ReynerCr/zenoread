@@ -48,8 +48,6 @@ async function mountReader() {
 
 const PDF_DOC_WITH_SECTIONS: ParsedDocument = {
   title: "Test PDF",
-  content_raw: "Page one text here.\n\nPage two text here.\n\nPage three text here.",
-  total_words: 12,
   file_path: "/test.pdf",
   file_type: "pdf",
   language: "en",

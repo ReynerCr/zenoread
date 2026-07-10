@@ -3,9 +3,9 @@ import type { FileType } from "../db/schemas/documents.schema";
 import { TxtStreamer } from "./txtStreamer";
 
 /**
- * Parses plain text (.txt) files. Normalizes line endings, counts words, and
- * extracts a title from the first non-empty line when it looks like a heading
- * (short, no trailing sentence punctuation). Falls back to the filename.
+ * Parses plain text (.txt) files. Normalizes line endings and extracts a
+ * title from the first non-empty line when it looks like a heading (short,
+ * no trailing sentence punctuation). Falls back to the filename.
  */
 export class TxtParser implements DocumentParser {
   readonly supportedTypes: FileType[] = ["txt"];
@@ -14,16 +14,10 @@ export class TxtParser implements DocumentParser {
     const content = typeof raw === "string" ? raw : new TextDecoder().decode(raw);
     const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
 
-    const total_words = normalized.length > 0
-      ? normalized.split(/\s+/).filter(Boolean).length
-      : 0;
-
     const title = extractTitle(normalized, metadata.title);
 
     return {
       title,
-      content_raw: normalized,
-      total_words,
       file_path: metadata.file_path,
       file_type: metadata.file_type,
       language: metadata.language,

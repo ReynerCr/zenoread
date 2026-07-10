@@ -7,12 +7,6 @@ export interface DocumentMetadata {
   language: string;
 }
 
-export interface DocumentSection {
-  label: string;
-  page_number: number;
-  word_offset: number;
-}
-
 /**
  * Provides text content on demand, one section at a time.
  * TXT files have one section; PDFs have one per page.
@@ -28,13 +22,10 @@ export interface DocumentStreamer {
 
 export interface ParsedDocument {
   title: string;
-  content_raw: string;
-  total_words: number;
   file_path: string;
   file_type: FileType;
   language: string;
-  sections?: DocumentSection[];
-  streamer?: DocumentStreamer;
+  streamer: DocumentStreamer;
 }
 
 /**
