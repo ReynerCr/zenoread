@@ -156,14 +156,14 @@ async function openParsedDocument(doc: ParsedDocument) {
   const saved = await documentsStore.saveDocument(doc);
   savedDocId.value = saved?.id ?? null;
 
-  let startIndex = 0;
+  let startPos = { sectionIndex: 0, blockIndex: 0 };
   if (savedDocId.value) {
-    startIndex = await progressStore.loadProgress(savedDocId.value);
+    startPos = await progressStore.loadProgress(savedDocId.value);
   }
 
   streamerRef.value = doc.streamer ?? null;
   if (streamerRef.value) {
-    await loadSection(0, startIndex);
+    await loadSection(startPos.sectionIndex, startPos.blockIndex);
   }
 }
 
@@ -196,7 +196,9 @@ function saveCurrentProgress() {
   void progressStore
     .saveProgress(
       savedDocId.value,
+      playback.currentSection.value,
       playback.currentIndex.value,
+      playback.sectionCount.value,
       playback.totalBlocks.value,
     )
     .then(() => {

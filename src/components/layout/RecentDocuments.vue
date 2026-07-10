@@ -80,7 +80,7 @@ function handleOpenDoc(docId: string) {
           >
             <span class="truncate text-xs font-medium text-zeno-text">{{ doc.title }}</span>
             <span class="text-[10px] text-zeno-muted">
-              {{ doc.total_words }} words · {{ formatRelativeDate(doc.modified_date) }}
+              {{ doc.section_count > 1 ? `${doc.section_count} pages` : "1 section" }} · {{ formatRelativeDate(doc.modified_date) }}
             </span>
           </button>
         </li>

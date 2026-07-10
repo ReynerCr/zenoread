@@ -64,7 +64,7 @@ export const useDocumentsStore = defineStore("documents", () => {
       if (existing) {
         await existing.patch({
           title: parsed.title,
-          total_words: parsed.total_words,
+          section_count: parsed.streamer?.sectionCount ?? 1,
           modified_date: now,
           language: parsed.language,
         });
@@ -73,7 +73,7 @@ export const useDocumentsStore = defineStore("documents", () => {
         const newDoc: DocumentDocType = {
           id: crypto.randomUUID(),
           title: parsed.title,
-          total_words: parsed.total_words,
+          section_count: parsed.streamer?.sectionCount ?? 1,
           file_path: parsed.file_path,
           created_date: now,
           modified_date: now,

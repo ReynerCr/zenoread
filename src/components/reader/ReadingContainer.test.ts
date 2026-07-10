@@ -69,14 +69,14 @@ async function mountWithPdfDoc() {
   vi.spyOn(documentsStore, "saveDocument").mockResolvedValue({
     id: "test-id",
     title: "Test PDF",
-    total_words: 12,
+    section_count: 3,
     file_path: "/test.pdf",
     created_date: "",
     modified_date: "",
     file_type: "pdf",
     language: "en",
   });
-  vi.spyOn(progressStore, "loadProgress").mockResolvedValue(0);
+  vi.spyOn(progressStore, "loadProgress").mockResolvedValue({ sectionIndex: 0, blockIndex: 0 });
 
   await wrapper.find('button[aria-label="Open file"]').trigger("click");
   await flushPromises();
