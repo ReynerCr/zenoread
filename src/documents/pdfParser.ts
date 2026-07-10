@@ -1,5 +1,6 @@
 import type { DocumentMetadata, DocumentParser, ParsedDocument, DocumentSection } from "./types";
 import type { FileType } from "../db/schemas/documents.schema";
+import { PdfStreamer } from "./pdfStreamer";
 
 let pdfjsLibPromise: Promise<typeof import("pdfjs-dist")> | null = null;
 
@@ -90,6 +91,7 @@ export class PdfParser implements DocumentParser {
       file_type: metadata.file_type,
       language: metadata.language,
       sections,
+      streamer: new PdfStreamer(pageTexts),
     };
   }
 }

@@ -1,5 +1,6 @@
 import type { DocumentMetadata, DocumentParser, ParsedDocument } from "./types";
 import type { FileType } from "../db/schemas/documents.schema";
+import { TxtStreamer } from "./txtStreamer";
 
 /**
  * Parses plain text (.txt) files. Normalizes line endings, counts words, and
@@ -26,6 +27,7 @@ export class TxtParser implements DocumentParser {
       file_path: metadata.file_path,
       file_type: metadata.file_type,
       language: metadata.language,
+      streamer: new TxtStreamer(normalized),
     };
   }
 }

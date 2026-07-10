@@ -18,6 +18,9 @@ describe("TxtParser — basic parsing", () => {
     expect(result.content_raw).toBe("Hello world from ZenoRead");
     expect(result.total_words).toBe(4);
     expect(result.file_type).toBe("txt");
+    expect(result.streamer).toBeDefined();
+    expect(result.streamer!.sectionCount).toBe(1);
+    expect(await result.streamer!.loadSection(0)).toBe("Hello world from ZenoRead");
   });
 
   it("normalizes CRLF and CR line endings to LF", async () => {

@@ -45,6 +45,10 @@ describe("PdfParser — text extraction", () => {
     expect(result.content_raw).toBe("Hello world\n\nfrom PDF");
     expect(result.total_words).toBe(4);
     expect(result.file_type).toBe("pdf");
+    expect(result.streamer).toBeDefined();
+    expect(result.streamer!.sectionCount).toBe(2);
+    expect(await result.streamer!.loadSection(0)).toBe("Hello world");
+    expect(await result.streamer!.loadSection(1)).toBe("from PDF");
   });
 
   it("populates sections with one entry per page", async () => {
