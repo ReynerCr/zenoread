@@ -21,15 +21,15 @@ vi.mock("../db/database", () => ({
 }));
 
 import { useDocumentsStore } from "./documents";
+import { TxtStreamer } from "../documents/txtStreamer";
 import type { ParsedDocument } from "../documents/types";
 
 const PARSED_DOC: ParsedDocument = {
   title: "Test Document",
-  content_raw: "Hello world. This is a test.",
-  total_words: 6,
   file_path: "/home/user/test.txt",
   file_type: "txt",
   language: "en",
+  streamer: new TxtStreamer("Hello world. This is a test."),
 };
 
 function mockExecReturn(doc: unknown | null) {
@@ -72,7 +72,7 @@ describe("documents store — saveDocument", () => {
     const existingDoc = {
       id: "existing-id",
       title: "Old Title",
-      total_words: 2,
+      section_count: 1,
       file_path: "/home/user/test.txt",
       created_date: "2026-01-01T00:00:00.000Z",
       modified_date: "2026-01-01T00:00:00.000Z",
@@ -97,7 +97,7 @@ describe("documents store — saveDocument", () => {
     expect(mockPatch).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Test Document",
-        total_words: 6,
+        section_count: 1,
       }),
     );
     expect(result?.id).toBe("existing-id");

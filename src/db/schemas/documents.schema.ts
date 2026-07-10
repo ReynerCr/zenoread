@@ -10,7 +10,8 @@ export type FileType = "txt" | "pdf" | "epub" | "md";
 export interface DocumentDocType {
   id: string;
   title: string;
-  total_words: number;
+  /** Number of sections (pages for PDF, 1 for TXT). */
+  section_count: number;
   /** Absolute path on disk the document was loaded from (for reloading). */
   file_path: string;
   /** ISO-8601 timestamp. */
@@ -24,13 +25,13 @@ export interface DocumentDocType {
 
 export const documentsSchema: RxJsonSchema<DocumentDocType> = {
   title: "documents schema",
-  version: 1,
+  version: 2,
   primaryKey: "id",
   type: "object",
   properties: {
     id: { type: "string", maxLength: 64 },
     title: { type: "string", maxLength: 500 },
-    total_words: { type: "number", minimum: 0, multipleOf: 1 },
+    section_count: { type: "number", minimum: 0, multipleOf: 1 },
     file_path: { type: "string", maxLength: 4096 },
     created_date: { type: "string", maxLength: 32 },
     modified_date: { type: "string", maxLength: 32 },
@@ -40,7 +41,7 @@ export const documentsSchema: RxJsonSchema<DocumentDocType> = {
   required: [
     "id",
     "title",
-    "total_words",
+    "section_count",
     "file_path",
     "created_date",
     "modified_date",

@@ -51,8 +51,17 @@ function emptyContentError(fileType: FileType): AppError {
   return new AppError("The file appears to be empty.");
 }
 
-export function validateContent(doc: ParsedDocument): ParsedDocument {
-  if (doc.content_raw.trim().length === 0) {
+export async function validateContent(doc: ParsedDocument): Promise<ParsedDocument> {
+  const { streamer } = doc;
+  let hasContent = false;
+  for (let i = 0; i < streamer.sectionCount; i++) {
+    const text = await streamer.loadSection(i);
+    if (text.trim().length > 0) {
+      hasContent = true;
+      break;
+    }
+  }
+  if (!hasContent) {
     throw emptyContentError(doc.file_type);
   }
   return doc;

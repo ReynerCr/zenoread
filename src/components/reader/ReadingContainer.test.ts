@@ -5,6 +5,7 @@ import ReadingContainer from "./ReadingContainer.vue";
 import { useSettingsStore } from "../../stores/settings";
 import { useDocumentsStore } from "../../stores/documents";
 import { useProgressStore } from "../../stores/progress";
+import { PdfStreamer } from "../../documents/pdfStreamer";
 import type { ParsedDocument } from "../../documents/types";
 
 const mockLoadDocumentFromDialog = vi.hoisted(() => vi.fn());
@@ -47,16 +48,14 @@ async function mountReader() {
 
 const PDF_DOC_WITH_SECTIONS: ParsedDocument = {
   title: "Test PDF",
-  content_raw: "Page one text here.\n\nPage two text here.\n\nPage three text here.",
-  total_words: 12,
   file_path: "/test.pdf",
   file_type: "pdf",
   language: "en",
-  sections: [
-    { label: "Page 1", page_number: 1, word_offset: 0 },
-    { label: "Page 2", page_number: 2, word_offset: 4 },
-    { label: "Page 3", page_number: 3, word_offset: 8 },
-  ],
+  streamer: new PdfStreamer([
+    "Page one text here.",
+    "Page two text here.",
+    "Page three text here.",
+  ]),
 };
 
 async function mountWithPdfDoc() {
@@ -68,14 +67,14 @@ async function mountWithPdfDoc() {
   vi.spyOn(documentsStore, "saveDocument").mockResolvedValue({
     id: "test-id",
     title: "Test PDF",
-    total_words: 12,
+    section_count: 3,
     file_path: "/test.pdf",
     created_date: "",
     modified_date: "",
     file_type: "pdf",
     language: "en",
   });
-  vi.spyOn(progressStore, "loadProgress").mockResolvedValue(0);
+  vi.spyOn(progressStore, "loadProgress").mockResolvedValue({ sectionIndex: 0, blockIndex: 0 });
 
   await wrapper.find('button[aria-label="Open file"]').trigger("click");
   await flushPromises();

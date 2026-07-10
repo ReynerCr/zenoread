@@ -80,9 +80,27 @@ async function createDatabase(): Promise<ZenoDatabase> {
           void content_raw;
           return rest;
         },
+        2: (doc) => {
+          // v1→v2: replaced total_words with section_count.
+          const { total_words, ...rest } = doc as Record<string, unknown>;
+          void total_words;
+          return { ...rest, section_count: 1 };
+        },
       },
     },
-    reading_progress: { schema: readingProgressSchema },
+    reading_progress: {
+      schema: readingProgressSchema,
+      migrationStrategies: {
+        1: (doc) => {
+          // v0→v1: replaced last_word_index with section_index + block_index_in_section.
+          const oldDoc = doc as Record<string, unknown>;
+          const lastWordIndex = oldDoc.last_word_index ?? 0;
+          const { last_word_index, ...rest } = oldDoc;
+          void last_word_index;
+          return { ...rest, section_index: 0, block_index_in_section: lastWordIndex };
+        },
+      },
+    },
   });
 
   return db;

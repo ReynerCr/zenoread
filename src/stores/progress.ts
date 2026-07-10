@@ -5,6 +5,11 @@ import { getDatabase } from "../db/database";
 import type { ReadingProgressDocType } from "../db/schemas/readingProgress.schema";
 import { reportError } from "../utils/errors";
 
+export interface ProgressPosition {
+  sectionIndex: number;
+  blockIndex: number;
+}
+
 /**
  * Manages the reading_progress collection in RxDB: saving and restoring the
  * reader's position within a document.
@@ -19,10 +24,10 @@ export const useProgressStore = defineStore("progress", () => {
   }
 
   /**
-   * Loads the saved progress for a document. Returns the `last_word_index` or
-   * 0 if no progress record exists.
+   * Loads the saved progress for a document. Returns the section and block
+   * index, or { sectionIndex: 0, blockIndex: 0 } if no progress record exists.
    */
-  async function loadProgress(documentId: string): Promise<number> {
+  async function loadProgress(documentId: string): Promise<ProgressPosition> {
     try {
       const db = await getDatabase();
       const doc = await db.reading_progress
@@ -32,13 +37,16 @@ export const useProgressStore = defineStore("progress", () => {
       if (doc) {
         const progress = doc.toJSON() as ReadingProgressDocType;
         currentProgress.value = progress;
-        return progress.last_word_index;
+        return {
+          sectionIndex: progress.section_index,
+          blockIndex: progress.block_index_in_section,
+        };
       }
       currentProgress.value = null;
-      return 0;
+      return { sectionIndex: 0, blockIndex: 0 };
     } catch (error) {
       reportError(error, "Could not load your reading progress.", { context: "progress.loadProgress" });
-      return 0;
+      return { sectionIndex: 0, blockIndex: 0 };
     }
   }
 
@@ -48,14 +56,18 @@ export const useProgressStore = defineStore("progress", () => {
    */
   async function saveProgress(
     documentId: string,
-    lastWordIndex: number,
-    totalBlocks: number,
+    sectionIndex: number,
+    blockIndex: number,
+    sectionCount: number,
+    blocksInSection: number,
   ): Promise<void> {
-    if (totalBlocks === 0) return;
+    if (blocksInSection === 0) return;
 
-    const clampedIndex = Math.max(0, Math.min(lastWordIndex, totalBlocks - 1));
+    const clampedBlock = Math.max(0, Math.min(blockIndex, blocksInSection - 1));
     const now = new Date().toISOString();
-    const completion = Math.round((clampedIndex / totalBlocks) * 100);
+    const completion = sectionCount > 0
+      ? Math.round(((sectionIndex + clampedBlock / blocksInSection) / sectionCount) * 100)
+      : 0;
 
     try {
       const db = await getDatabase();
@@ -65,14 +77,16 @@ export const useProgressStore = defineStore("progress", () => {
 
       if (existing) {
         await existing.patch({
-          last_word_index: clampedIndex,
+          section_index: sectionIndex,
+          block_index_in_section: clampedBlock,
           last_read_date: now,
           completion_percentage: completion,
         });
       } else {
         const newProgress: ReadingProgressDocType = {
           document_id: documentId,
-          last_word_index: clampedIndex,
+          section_index: sectionIndex,
+          block_index_in_section: clampedBlock,
           last_read_date: now,
           reading_time_total: 0,
           completion_percentage: completion,

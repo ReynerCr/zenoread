@@ -26,17 +26,18 @@ beforeEach(() => {
 });
 
 describe("progress store — loadProgress", () => {
-  it("returns 0 when no progress record exists", async () => {
+  it("returns default position when no progress record exists", async () => {
     const store = useProgressStore();
-    const index = await store.loadProgress("doc-1");
-    expect(index).toBe(0);
+    const pos = await store.loadProgress("doc-1");
+    expect(pos).toEqual({ sectionIndex: 0, blockIndex: 0 });
     expect(store.currentProgress).toBeNull();
   });
 
-  it("returns saved last_word_index when a record exists", async () => {
+  it("returns saved section and block index when a record exists", async () => {
     const saved = {
       document_id: "doc-1",
-      last_word_index: 42,
+      section_index: 3,
+      block_index_in_section: 7,
       last_read_date: "2026-01-01T00:00:00.000Z",
       reading_time_total: 60000,
       completion_percentage: 50,
@@ -46,22 +47,23 @@ describe("progress store — loadProgress", () => {
     });
 
     const store = useProgressStore();
-    const index = await store.loadProgress("doc-1");
-    expect(index).toBe(42);
-    expect(store.currentProgress?.last_word_index).toBe(42);
+    const pos = await store.loadProgress("doc-1");
+    expect(pos).toEqual({ sectionIndex: 3, blockIndex: 7 });
+    expect(store.currentProgress?.section_index).toBe(3);
   });
 });
 
 describe("progress store — saveProgress", () => {
   it("inserts a new progress record when none exists", async () => {
     const store = useProgressStore();
-    await store.saveProgress("doc-1", 10, 20);
+    await store.saveProgress("doc-1", 2, 5, 10, 20);
 
     expect(mockInsert).toHaveBeenCalledOnce();
     const inserted = mockInsert.mock.calls[0][0];
     expect(inserted.document_id).toBe("doc-1");
-    expect(inserted.last_word_index).toBe(10);
-    expect(inserted.completion_percentage).toBe(50);
+    expect(inserted.section_index).toBe(2);
+    expect(inserted.block_index_in_section).toBe(5);
+    expect(inserted.completion_percentage).toBe(23);
     expect(inserted.reading_time_total).toBe(0);
   });
 
@@ -69,7 +71,8 @@ describe("progress store — saveProgress", () => {
     const mockPatch = vi.fn();
     const existing = {
       document_id: "doc-1",
-      last_word_index: 5,
+      section_index: 0,
+      block_index_in_section: 5,
       last_read_date: "2026-01-01T00:00:00.000Z",
       reading_time_total: 30000,
       completion_percentage: 25,
@@ -79,28 +82,28 @@ describe("progress store — saveProgress", () => {
     });
 
     const store = useProgressStore();
-    await store.saveProgress("doc-1", 15, 20);
+    await store.saveProgress("doc-1", 1, 10, 4, 20);
 
     expect(mockInsert).not.toHaveBeenCalled();
     expect(mockPatch).toHaveBeenCalledWith(
       expect.objectContaining({
-        last_word_index: 15,
-        completion_percentage: 75,
+        section_index: 1,
+        block_index_in_section: 10,
+        completion_percentage: 38,
       }),
     );
   });
 
-  it("clamps last_word_index to valid range", async () => {
+  it("clamps block index to valid range", async () => {
     const store = useProgressStore();
-    await store.saveProgress("doc-1", 100, 20);
+    await store.saveProgress("doc-1", 0, 100, 1, 20);
     const inserted = mockInsert.mock.calls[0][0];
-    expect(inserted.last_word_index).toBe(19);
-    expect(inserted.completion_percentage).toBe(95);
+    expect(inserted.block_index_in_section).toBe(19);
   });
 
-  it("skips saving when totalBlocks is 0", async () => {
+  it("skips saving when blocksInSection is 0", async () => {
     const store = useProgressStore();
-    await store.saveProgress("doc-1", 5, 0);
+    await store.saveProgress("doc-1", 0, 5, 1, 0);
     expect(mockInsert).not.toHaveBeenCalled();
   });
 });
@@ -109,7 +112,8 @@ describe("progress store — clearProgress", () => {
   it("clears the current progress ref", async () => {
     const saved = {
       document_id: "doc-1",
-      last_word_index: 5,
+      section_index: 0,
+      block_index_in_section: 5,
       last_read_date: "",
       reading_time_total: 0,
       completion_percentage: 25,
