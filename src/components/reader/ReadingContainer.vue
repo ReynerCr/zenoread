@@ -7,7 +7,9 @@ import { useKeyboardShortcuts } from "../../composables/useKeyboardShortcuts";
 import { useDragDrop } from "../../composables/useDragDrop";
 import { segmentIntoBlocks } from "../../parsing/parser";
 import { loadDocumentFromDialog, loadDocumentFromPath } from "../../documents/fileLoader";
-import type { ParsedDocument } from "../../documents/types";
+import { mapSectionsToBlocks } from "../../documents/sectionMapper";
+import type { ParsedDocument, DocumentSection } from "../../documents/types";
+import type { WordBlock } from "../../parsing/types";
 import { useDocumentsStore } from "../../stores/documents";
 import { useProgressStore } from "../../stores/progress";
 import { isTauri } from "../../utils/platform";
@@ -21,6 +23,7 @@ const loadedDocument = ref<ParsedDocument | null>(null);
 const savedDocId = ref<string | null>(null);
 const saveState = ref<"idle" | "saving" | "saved">("idle");
 const dropZoneRef = ref<HTMLElement | null>(null);
+const blocksRef = ref<WordBlock[]>([]);
 
 useKeyboardShortcuts({
   onTogglePlayPause: togglePlayPause,
@@ -45,23 +48,58 @@ const displayText = computed(() => {
   return block.words.join(" ");
 });
 
+const hasSections = computed(() => playback.sectionBoundaries.value.length > 0);
+const totalPages = computed(() => playback.sectionBoundaries.value.length);
+const currentPage = computed(() => playback.currentSection.value + 1);
+
+function countParagraphBreaks(blocks: WordBlock[], start: number, end: number): number {
+  let count = 0;
+  for (let i = start; i < end; i++) {
+    if (blocks[i]?.pauseType === "paragraph") count++;
+  }
+  return count;
+}
+
 const progressLabel = computed(() => {
+  if (playback.totalBlocks.value === 0 || blocksRef.value.length === 0) return "";
+  const idx = playback.currentIndex.value;
+  const blocks = blocksRef.value;
+
+  if (hasSections.value) {
+    const page = currentPage.value;
+    const pageStart = playback.sectionBoundaries.value[playback.currentSection.value] ?? 0;
+    const paragraphInPage = 1 + countParagraphBreaks(blocks, pageStart, idx);
+    return `Page ${page} · ¶ ${paragraphInPage}`;
+  }
+
+  const currentParagraph = 1 + countParagraphBreaks(blocks, 0, idx);
+  const totalParagraphs = 1 + blocks.filter((b) => b.pauseType === "paragraph").length;
+  return `¶ ${currentParagraph} / ${totalParagraphs}`;
+});
+
+const blockCounterLabel = computed(() => {
   if (playback.totalBlocks.value === 0) return "";
-  return `${playback.currentIndex.value + 1} / ${playback.totalBlocks.value}`;
+  return `block ${playback.currentIndex.value + 1} / ${playback.totalBlocks.value}`;
 });
 
 const isPlaying = computed(() => playback.state.value === "play");
 const isPaused = computed(() => playback.state.value === "pause");
 const hasDocument = computed(() => loadedDocument.value !== null);
 
-function loadText(text: string, startIndex = 0) {
+function loadText(text: string, startIndex = 0, sections?: DocumentSection[]) {
   const blocks = segmentIntoBlocks(text, {
     language: "en",
     minWords: settings.settings.min_words_screen,
     maxWords: settings.settings.max_words_screen,
     splitOnSentenceEnd: settings.settings.split_on_sentence_end,
   });
+  blocksRef.value = blocks;
   playback.load(blocks, settings.settings.wpm_default, settings.settings.pause_multipliers);
+
+  if (sections && sections.length > 0) {
+    playback.loadSections(mapSectionsToBlocks(blocks, sections));
+  }
+
   if (startIndex > 0 && startIndex < blocks.length) {
     playback.seek(startIndex);
   }
@@ -115,7 +153,7 @@ async function openParsedDocument(doc: ParsedDocument) {
   if (savedDocId.value) {
     startIndex = await progressStore.loadProgress(savedDocId.value);
   }
-  loadText(doc.content_raw, startIndex);
+  loadText(doc.content_raw, startIndex, doc.sections);
 }
 
 const { isDragOver } = useDragDrop(
@@ -163,6 +201,21 @@ function stopAndSave() {
   playback.stop();
 }
 
+function prevPage() {
+  playback.seekToSection(playback.currentSection.value - 1);
+}
+
+function nextPage() {
+  playback.seekToSection(playback.currentSection.value + 1);
+}
+
+function onPageInput(event: Event) {
+  const value = parseInt((event.target as HTMLInputElement).value, 10);
+  if (!isNaN(value) && value >= 1 && value <= totalPages.value) {
+    playback.seekToSection(value - 1);
+  }
+}
+
 function handleBeforeUnload() {
   if (savedDocId.value && playback.state.value !== "stop") {
     saveCurrentProgress();
@@ -179,7 +232,11 @@ watch(
   () => {
     if (playback.totalBlocks.value > 0) {
       const currentIndex = playback.currentIndex.value;
-      loadText(loadedDocument.value?.content_raw ?? SAMPLE_TEXT, currentIndex);
+      loadText(
+          loadedDocument.value?.content_raw ?? SAMPLE_TEXT,
+          currentIndex,
+          loadedDocument.value?.sections,
+        );
     }
   },
 );
@@ -260,6 +317,44 @@ onBeforeUnmount(() => {
       <span v-if="progressLabel" data-testid="progress" class="text-xs text-zeno-muted tabular-nums">
         {{ progressLabel }}
       </span>
+      <span
+        v-if="settings.settings.show_block_counter && blockCounterLabel"
+        data-testid="block-counter"
+        class="text-xs text-zeno-muted/60 tabular-nums"
+      >
+        {{ blockCounterLabel }}
+      </span>
+
+      <!-- Page navigation (PDF only) -->
+      <div v-if="hasSections" class="flex items-center gap-1" data-testid="page-nav">
+        <button
+          class="rounded-md border border-zeno-border px-2 py-1 text-xs text-zeno-text hover:bg-zeno-surface disabled:opacity-30 disabled:cursor-not-allowed"
+          aria-label="Previous page"
+          :disabled="currentPage <= 1"
+          @click="prevPage"
+        >
+          ◀
+        </button>
+        <input
+          type="number"
+          :min="1"
+          :max="totalPages"
+          :value="currentPage"
+          class="w-12 rounded-md border border-zeno-border bg-zeno-bg px-2 py-1 text-center text-xs text-zeno-text tabular-nums"
+          aria-label="Page number"
+          @change="onPageInput"
+        />
+        <span class="text-xs text-zeno-muted tabular-nums">/ {{ totalPages }}</span>
+        <button
+          class="rounded-md border border-zeno-border px-2 py-1 text-xs text-zeno-text hover:bg-zeno-surface disabled:opacity-30 disabled:cursor-not-allowed"
+          aria-label="Next page"
+          :disabled="currentPage >= totalPages"
+          @click="nextPage"
+        >
+          ▶
+        </button>
+      </div>
+
       <div class="flex items-center gap-2">
         <button
           class="rounded-md border border-zeno-border px-3 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface"

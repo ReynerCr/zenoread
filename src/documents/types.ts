@@ -7,6 +7,12 @@ export interface DocumentMetadata {
   language: string;
 }
 
+export interface DocumentSection {
+  label: string;
+  page_number: number;
+  word_offset: number;
+}
+
 export interface ParsedDocument {
   title: string;
   content_raw: string;
@@ -14,6 +20,7 @@ export interface ParsedDocument {
   file_path: string;
   file_type: FileType;
   language: string;
+  sections?: DocumentSection[];
 }
 
 /**
