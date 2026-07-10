@@ -47,6 +47,22 @@ describe("PdfParser — text extraction", () => {
     expect(result.file_type).toBe("pdf");
   });
 
+  it("populates sections with one entry per page", async () => {
+    vi.doMock("pdfjs-dist", () => mockPdfjsLib([
+      { text: "one two three" },
+      { text: "four five" },
+      { text: "six" },
+    ]));
+    vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
+    const { PdfParser } = await import("./pdfParser");
+    const parser = new PdfParser();
+    const result = await parser.parse(new Uint8Array([1]), meta());
+    expect(result.sections).toHaveLength(3);
+    expect(result.sections![0]).toEqual({ label: "Page 1", page_number: 1, word_offset: 0 });
+    expect(result.sections![1]).toEqual({ label: "Page 2", page_number: 2, word_offset: 3 });
+    expect(result.sections![2]).toEqual({ label: "Page 3", page_number: 3, word_offset: 5 });
+  });
+
   it("falls back to filename title when PDF has no metadata title", async () => {
     vi.doMock("pdfjs-dist", () => mockPdfjsLib([{ text: "Some content" }]));
     vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
@@ -90,6 +106,9 @@ describe("PdfParser — edge cases", () => {
     const result = await parser.parse(new Uint8Array([1]), meta());
     expect(result.content_raw).toBe("");
     expect(result.total_words).toBe(0);
+    expect(result.sections).toHaveLength(2);
+    expect(result.sections![0].word_offset).toBe(0);
+    expect(result.sections![1].word_offset).toBe(0);
   });
 
   it("accepts string input by encoding it", async () => {

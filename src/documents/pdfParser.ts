@@ -1,4 +1,4 @@
-import type { DocumentMetadata, DocumentParser, ParsedDocument } from "./types";
+import type { DocumentMetadata, DocumentParser, ParsedDocument, DocumentSection } from "./types";
 import type { FileType } from "../db/schemas/documents.schema";
 
 let pdfjsLibPromise: Promise<typeof import("pdfjs-dist")> | null = null;
@@ -23,8 +23,8 @@ async function getPdfjsLib(): Promise<typeof import("pdfjs-dist")> {
 
 /**
  * Parses PDF (.pdf) files using pdf.js. Extracts text from all pages,
- * concatenates it, and counts words. No page awareness — the output is
- * a flat text stream suitable for the RSVP engine.
+ * concatenates it, and counts words. Populates `sections` with one entry
+ * per page so the UI can offer page navigation.
  */
 export class PdfParser implements DocumentParser {
   readonly supportedTypes: FileType[] = ["pdf"];
@@ -47,6 +47,9 @@ export class PdfParser implements DocumentParser {
     }
 
     const pageTexts: string[] = [];
+    const sections: DocumentSection[] = [];
+    let cumulativeWords = 0;
+
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
@@ -54,7 +57,17 @@ export class PdfParser implements DocumentParser {
         .map((item) => ("str" in item ? item.str : ""))
         .join(" ")
         .trim();
-      if (text) pageTexts.push(text);
+
+      sections.push({
+        label: `Page ${i}`,
+        page_number: i,
+        word_offset: cumulativeWords,
+      });
+
+      if (text) {
+        pageTexts.push(text);
+        cumulativeWords += text.split(/\s+/).filter(Boolean).length;
+      }
     }
 
     await loadingTask.destroy();
@@ -71,6 +84,7 @@ export class PdfParser implements DocumentParser {
       file_path: metadata.file_path,
       file_type: metadata.file_type,
       language: metadata.language,
+      sections,
     };
   }
 }
