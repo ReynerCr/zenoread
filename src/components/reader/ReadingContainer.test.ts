@@ -5,6 +5,7 @@ import ReadingContainer from "./ReadingContainer.vue";
 import { useSettingsStore } from "../../stores/settings";
 import { useDocumentsStore } from "../../stores/documents";
 import { useProgressStore } from "../../stores/progress";
+import { PdfStreamer } from "../../documents/pdfStreamer";
 import type { ParsedDocument } from "../../documents/types";
 
 const mockLoadDocumentFromDialog = vi.hoisted(() => vi.fn());
@@ -52,11 +53,11 @@ const PDF_DOC_WITH_SECTIONS: ParsedDocument = {
   file_path: "/test.pdf",
   file_type: "pdf",
   language: "en",
-  sections: [
-    { label: "Page 1", page_number: 1, word_offset: 0 },
-    { label: "Page 2", page_number: 2, word_offset: 4 },
-    { label: "Page 3", page_number: 3, word_offset: 8 },
-  ],
+  streamer: new PdfStreamer([
+    "Page one text here.",
+    "Page two text here.",
+    "Page three text here.",
+  ]),
 };
 
 async function mountWithPdfDoc() {

@@ -7,8 +7,8 @@ import { useKeyboardShortcuts } from "../../composables/useKeyboardShortcuts";
 import { useDragDrop } from "../../composables/useDragDrop";
 import { segmentIntoBlocks } from "../../parsing/parser";
 import { loadDocumentFromDialog, loadDocumentFromPath } from "../../documents/fileLoader";
-import { mapSectionsToBlocks } from "../../documents/sectionMapper";
-import type { ParsedDocument, DocumentSection } from "../../documents/types";
+import { TxtStreamer } from "../../documents/txtStreamer";
+import type { ParsedDocument, DocumentStreamer } from "../../documents/types";
 import type { WordBlock } from "../../parsing/types";
 import { useDocumentsStore } from "../../stores/documents";
 import { useProgressStore } from "../../stores/progress";
@@ -24,6 +24,7 @@ const savedDocId = ref<string | null>(null);
 const saveState = ref<"idle" | "saving" | "saved">("idle");
 const dropZoneRef = ref<HTMLElement | null>(null);
 const blocksRef = ref<WordBlock[]>([]);
+const streamerRef = ref<DocumentStreamer | null>(null);
 
 useKeyboardShortcuts({
   onTogglePlayPause: togglePlayPause,
@@ -48,8 +49,8 @@ const displayText = computed(() => {
   return block.words.join(" ");
 });
 
-const hasSections = computed(() => playback.sectionBoundaries.value.length > 0);
-const totalPages = computed(() => playback.sectionBoundaries.value.length);
+const hasSections = computed(() => playback.sectionCount.value > 1);
+const totalPages = computed(() => playback.sectionCount.value);
 const currentPage = computed(() => playback.currentSection.value + 1);
 
 function countParagraphBreaks(blocks: WordBlock[], start: number, end: number): number {
@@ -67,8 +68,7 @@ const progressLabel = computed(() => {
 
   if (hasSections.value) {
     const page = currentPage.value;
-    const pageStart = playback.sectionBoundaries.value[playback.currentSection.value] ?? 0;
-    const paragraphInPage = 1 + countParagraphBreaks(blocks, pageStart, idx);
+    const paragraphInPage = 1 + countParagraphBreaks(blocks, 0, idx);
     return `Page ${page} · ¶ ${paragraphInPage}`;
   }
 
@@ -86,7 +86,11 @@ const isPlaying = computed(() => playback.state.value === "play");
 const isPaused = computed(() => playback.state.value === "pause");
 const hasDocument = computed(() => loadedDocument.value !== null);
 
-function loadText(text: string, startIndex = 0, sections?: DocumentSection[]) {
+async function loadSection(sectionIndex: number, startIndex = 0) {
+  const streamer = streamerRef.value;
+  if (!streamer) return;
+
+  const text = await streamer.loadSection(sectionIndex);
   const blocks = segmentIntoBlocks(text, {
     language: "en",
     minWords: settings.settings.min_words_screen,
@@ -95,10 +99,7 @@ function loadText(text: string, startIndex = 0, sections?: DocumentSection[]) {
   });
   blocksRef.value = blocks;
   playback.load(blocks, settings.settings.wpm_default, settings.settings.pause_multipliers);
-
-  if (sections && sections.length > 0) {
-    playback.loadSections(mapSectionsToBlocks(blocks, sections));
-  }
+  playback.setSection(sectionIndex, streamer.sectionCount);
 
   if (startIndex > 0 && startIndex < blocks.length) {
     playback.seek(startIndex);
@@ -109,7 +110,8 @@ function loadSample() {
   loadedDocument.value = null;
   savedDocId.value = null;
   progressStore.clearProgress();
-  loadText(SAMPLE_TEXT);
+  streamerRef.value = new TxtStreamer(SAMPLE_TEXT);
+  void loadSection(0);
 }
 
 async function openFile() {
@@ -145,6 +147,11 @@ async function openFromLibrary(docId: string) {
 }
 
 async function openParsedDocument(doc: ParsedDocument) {
+  if (streamerRef.value) {
+    await streamerRef.value.close();
+    streamerRef.value = null;
+  }
+
   loadedDocument.value = doc;
   const saved = await documentsStore.saveDocument(doc);
   savedDocId.value = saved?.id ?? null;
@@ -153,7 +160,11 @@ async function openParsedDocument(doc: ParsedDocument) {
   if (savedDocId.value) {
     startIndex = await progressStore.loadProgress(savedDocId.value);
   }
-  loadText(doc.content_raw, startIndex, doc.sections);
+
+  streamerRef.value = doc.streamer ?? null;
+  if (streamerRef.value) {
+    await loadSection(0, startIndex);
+  }
 }
 
 const { isDragOver } = useDragDrop(
@@ -202,17 +213,19 @@ function stopAndSave() {
 }
 
 function prevPage() {
-  playback.seekToSection(playback.currentSection.value - 1);
+  const target = playback.currentSection.value - 1;
+  if (target >= 0) void loadSection(target);
 }
 
 function nextPage() {
-  playback.seekToSection(playback.currentSection.value + 1);
+  const target = playback.currentSection.value + 1;
+  if (target < playback.sectionCount.value) void loadSection(target);
 }
 
 function onPageInput(event: Event) {
   const value = parseInt((event.target as HTMLInputElement).value, 10);
   if (!isNaN(value) && value >= 1 && value <= totalPages.value) {
-    playback.seekToSection(value - 1);
+    void loadSection(value - 1);
   }
 }
 
@@ -231,12 +244,7 @@ watch(
   ],
   () => {
     if (playback.totalBlocks.value > 0) {
-      const currentIndex = playback.currentIndex.value;
-      loadText(
-          loadedDocument.value?.content_raw ?? SAMPLE_TEXT,
-          currentIndex,
-          loadedDocument.value?.sections,
-        );
+      void loadSection(playback.currentSection.value, playback.currentIndex.value);
     }
   },
 );
@@ -261,6 +269,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", handleBeforeUnload);
   window.removeEventListener("zenoread:open-recent", handleOpenRecent);
+  if (streamerRef.value) void streamerRef.value.close();
 });
 </script>
 
