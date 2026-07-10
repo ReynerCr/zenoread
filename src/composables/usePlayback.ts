@@ -1,4 +1,4 @@
-import { ref, shallowRef, onUnmounted } from "vue";
+import { ref, shallowRef, computed, onUnmounted } from "vue";
 import { PlaybackController, type PlaybackState } from "../playback/controller";
 import type { WordBlock } from "../parsing/types";
 import type { PauseMultipliers } from "../db/schemas/userSettings.schema";
@@ -16,8 +16,22 @@ export function usePlayback() {
   const currentBlock = ref<WordBlock | null>(null);
   const isFinished = ref(false);
   const totalBlocks = ref(0);
+  const sectionBoundaries = ref<number[]>([]);
 
   const controller = shallowRef<PlaybackController | null>(null);
+
+  const currentSection = computed(() => {
+    if (sectionBoundaries.value.length === 0) return -1;
+    let section = 0;
+    for (let i = 0; i < sectionBoundaries.value.length; i++) {
+      if (sectionBoundaries.value[i] <= currentIndex.value) {
+        section = i;
+      } else {
+        break;
+      }
+    }
+    return section;
+  });
 
   function createController(multipliers: PauseMultipliers): PlaybackController {
     return new PlaybackController(
@@ -51,6 +65,16 @@ export function usePlayback() {
     currentBlock.value = controller.value.currentBlock;
     isFinished.value = false;
     totalBlocks.value = controller.value.totalBlocks;
+    sectionBoundaries.value = [];
+  }
+
+  function loadSections(boundaries: number[]): void {
+    sectionBoundaries.value = boundaries;
+  }
+
+  function seekToSection(sectionIndex: number): void {
+    if (sectionIndex < 0 || sectionIndex >= sectionBoundaries.value.length) return;
+    controller.value?.seek(sectionBoundaries.value[sectionIndex]);
   }
 
   function updateSettings(wpm?: number, multipliers?: PauseMultipliers): void {
@@ -74,7 +98,11 @@ export function usePlayback() {
     currentBlock,
     isFinished,
     totalBlocks,
+    sectionBoundaries,
+    currentSection,
     load,
+    loadSections,
+    seekToSection,
     updateSettings,
     play,
     pause,
