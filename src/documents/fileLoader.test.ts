@@ -4,6 +4,7 @@ import { AppError } from "../utils/errors";
 import { TxtStreamer } from "./txtStreamer";
 import { PdfStreamer } from "./pdfStreamer";
 import type { ParsedDocument } from "./types";
+import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist";
 
 function makeTxtDoc(text: string): ParsedDocument {
   return {
@@ -15,18 +16,27 @@ function makeTxtDoc(text: string): ParsedDocument {
   };
 }
 
-function makePdfDoc(pages: string[]): ParsedDocument {
+function makePdfDoc(): ParsedDocument {
+  const pdf = {
+    numPages: 2,
+    getPage: () => Promise.resolve({
+      getTextContent: () => Promise.resolve({ items: [{ str: "text" }] }),
+    }),
+  } as unknown as PDFDocumentProxy;
+  const loadingTask = {
+    destroy: () => Promise.resolve(),
+  } as unknown as PDFDocumentLoadingTask;
   return {
     title: "test",
     file_path: "/test.pdf",
     file_type: "pdf",
     language: "en",
-    streamer: new PdfStreamer(pages),
+    streamer: new PdfStreamer(pdf, loadingTask),
   };
 }
 
 describe("validateContent", () => {
-  it("passes through documents with content", async () => {
+  it("passes through TXT documents with content", async () => {
     const doc = makeTxtDoc("Hello world");
     await expect(validateContent(doc)).resolves.toBe(doc);
   });
@@ -38,14 +48,8 @@ describe("validateContent", () => {
     );
   });
 
-  it("throws AppError with scanned-document message for empty pdf", async () => {
-    await expect(validateContent(makePdfDoc(["", ""]))).rejects.toThrow(
-      "This PDF doesn't contain a text layer. It may be a scanned document.",
-    );
-  });
-
-  it("passes through PDF with some empty pages", async () => {
-    const doc = makePdfDoc(["", "page two text", ""]);
+  it("passes through PDF without checking (validation happens in parser)", async () => {
+    const doc = makePdfDoc();
     await expect(validateContent(doc)).resolves.toBe(doc);
   });
 });

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
+import { computed, ref, shallowRef, watch, onMounted, onBeforeUnmount } from "vue";
 import { storeToRefs } from "pinia";
 import { useSettingsStore } from "../../stores/settings";
 import { usePlayback } from "../../composables/usePlayback";
@@ -19,12 +19,12 @@ const playback = usePlayback();
 const documentsStore = useDocumentsStore();
 const { isLoading } = storeToRefs(documentsStore);
 const progressStore = useProgressStore();
-const loadedDocument = ref<ParsedDocument | null>(null);
+const loadedDocument = shallowRef<ParsedDocument | null>(null);
 const savedDocId = ref<string | null>(null);
 const saveState = ref<"idle" | "saving" | "saved">("idle");
 const dropZoneRef = ref<HTMLElement | null>(null);
 const blocksRef = ref<WordBlock[]>([]);
-const streamerRef = ref<DocumentStreamer | null>(null);
+const streamerRef = shallowRef<DocumentStreamer | null>(null);
 
 useKeyboardShortcuts({
   onTogglePlayPause: togglePlayPause,

@@ -7,6 +7,7 @@ import { useDocumentsStore } from "../../stores/documents";
 import { useProgressStore } from "../../stores/progress";
 import { PdfStreamer } from "../../documents/pdfStreamer";
 import type { ParsedDocument } from "../../documents/types";
+import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist";
 
 const mockLoadDocumentFromDialog = vi.hoisted(() => vi.fn());
 vi.mock("../../documents/fileLoader", () => ({
@@ -46,16 +47,37 @@ async function mountReader() {
   return { wrapper, settings, pinia };
 }
 
+function makeMockPdf(pages: string[]): PDFDocumentProxy {
+  return {
+    numPages: pages.length,
+    getPage: vi.fn((n: number) =>
+      Promise.resolve({
+        getTextContent: vi.fn(() =>
+          Promise.resolve({
+            items: pages[n - 1].split(" ").map((str) => ({ str })),
+          }),
+        ),
+      }),
+    ),
+  } as unknown as PDFDocumentProxy;
+}
+
+function makeMockLoadingTask(): PDFDocumentLoadingTask {
+  return {
+    destroy: vi.fn(() => Promise.resolve()),
+  } as unknown as PDFDocumentLoadingTask;
+}
+
 const PDF_DOC_WITH_SECTIONS: ParsedDocument = {
   title: "Test PDF",
   file_path: "/test.pdf",
   file_type: "pdf",
   language: "en",
-  streamer: new PdfStreamer([
+  streamer: new PdfStreamer(makeMockPdf([
     "Page one text here.",
     "Page two text here.",
     "Page three text here.",
-  ]),
+  ]), makeMockLoadingTask()),
 };
 
 async function mountWithPdfDoc() {

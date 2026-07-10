@@ -1,6 +1,7 @@
 import type { DocumentMetadata, DocumentParser, ParsedDocument } from "./types";
 import type { FileType } from "../db/schemas/documents.schema";
 import { PdfStreamer } from "./pdfStreamer";
+import { AppError } from "../utils/errors";
 
 let pdfjsLibPromise: Promise<typeof import("pdfjs-dist")> | null = null;
 
@@ -23,9 +24,9 @@ async function getPdfjsLib(): Promise<typeof import("pdfjs-dist")> {
 }
 
 /**
- * Parses PDF (.pdf) files using pdf.js. Extracts text from all pages,
- * concatenates it, and counts words. Populates `sections` with one entry
- * per page so the UI can offer page navigation.
+ * Parses PDF (.pdf) files using pdf.js. Opens the document and keeps it
+ * open for on-demand page loading via PdfStreamer. Probes pages during
+ * parse to validate that the document has a text layer.
  */
 export class PdfParser implements DocumentParser {
   readonly supportedTypes: FileType[] = ["pdf"];
@@ -47,27 +48,29 @@ export class PdfParser implements DocumentParser {
       // Metadata is optional — fall back to filename.
     }
 
-    const pageTexts: string[] = [];
-
+    // Probe pages until we find text content. If no page has text, the
+    // document is likely scanned and has no text layer.
+    let hasContent = false;
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      const text = content.items
-        .map((item) => ("str" in item ? item.str : ""))
-        .join(" ")
-        .trim();
-
-      pageTexts.push(text);
+      if (content.items.some((item) => "str" in item && item.str.trim().length > 0)) {
+        hasContent = true;
+        break;
+      }
     }
 
-    await loadingTask.destroy();
+    if (!hasContent) {
+      await loadingTask.destroy();
+      throw new AppError("This PDF doesn't contain any text. It may be a fully scanned document.");
+    }
 
     return {
       title,
       file_path: metadata.file_path,
       file_type: metadata.file_type,
       language: metadata.language,
-      streamer: new PdfStreamer(pageTexts),
+      streamer: new PdfStreamer(pdf, loadingTask),
     };
   }
 }

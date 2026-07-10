@@ -46,22 +46,16 @@ async function readFileFromBlob(file: File, fileType: FileType): Promise<string 
 
 function emptyContentError(fileType: FileType): AppError {
   if (fileType === "pdf") {
-    return new AppError("This PDF doesn't contain a text layer. It may be a scanned document.");
+    return new AppError("This PDF doesn't contain any text. It may be a fully scanned document.");
   }
   return new AppError("The file appears to be empty.");
 }
 
 export async function validateContent(doc: ParsedDocument): Promise<ParsedDocument> {
-  const { streamer } = doc;
-  let hasContent = false;
-  for (let i = 0; i < streamer.sectionCount; i++) {
-    const text = await streamer.loadSection(i);
-    if (text.trim().length > 0) {
-      hasContent = true;
-      break;
-    }
-  }
-  if (!hasContent) {
+  // PDF validation (checking for text layer) happens in PdfParser during parse().
+  if (doc.file_type === "pdf") return doc;
+  const text = await doc.streamer.loadSection(0);
+  if (text.trim().length === 0) {
     throw emptyContentError(doc.file_type);
   }
   return doc;
