@@ -20,6 +20,10 @@ export function usePlayback() {
 
   const controller = shallowRef<PlaybackController | null>(null);
 
+  // currentSection returns the last boundary at or before currentIndex.
+  // When two sections share the same block index (e.g. an empty page and the
+  // next page with content), the later section wins, making the empty page
+  // invisible. Resolved by file streaming (per-page segmentation).
   const currentSection = computed(() => {
     if (sectionBoundaries.value.length === 0) return -1;
     let section = 0;

@@ -61,6 +61,11 @@ export class PdfParser implements DocumentParser {
       sections.push({
         label: `Page ${i}`,
         page_number: i,
+        // Known limitation: word_offset uses a naive whitespace split, but
+        // segmentIntoBlocks uses tokenize() which counts words differently.
+        // This causes drift on some PDFs. Also, empty pages get the same
+        // word_offset as the next page with content, making them invisible
+        // to navigation. Both issues are resolved by file streaming.
         word_offset: cumulativeWords,
       });
 

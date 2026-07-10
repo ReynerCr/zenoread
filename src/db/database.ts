@@ -67,7 +67,8 @@ async function createDatabase(): Promise<ZenoDatabase> {
     user_settings: {
       schema: userSettingsSchema,
       migrationStrategies: {
-        1: (doc) => doc, // v0→v1: widened max_words_screen maximum, no data transform needed.
+        1: (doc) => doc,
+        2: (doc) => ({ ...doc, show_block_counter: false }),
       },
     },
     documents: {

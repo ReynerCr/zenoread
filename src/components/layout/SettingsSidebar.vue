@@ -64,6 +64,7 @@ function resetAllSettings() {
     font_size: DEFAULT_USER_SETTINGS.font_size,
     font_family: DEFAULT_USER_SETTINGS.font_family,
     split_on_sentence_end: DEFAULT_USER_SETTINGS.split_on_sentence_end,
+    show_block_counter: DEFAULT_USER_SETTINGS.show_block_counter,
   });
 }
 
@@ -153,6 +154,26 @@ async function resetAppData() {
           @change="
             settings.update({
               split_on_sentence_end: ($event.target as HTMLInputElement).checked,
+            })
+          "
+        />
+      </div>
+
+      <div class="flex items-center justify-between">
+        <label
+          class="text-xs font-medium text-zeno-muted"
+          for="show-block-counter"
+        >
+          Show block counter
+        </label>
+        <input
+          id="show-block-counter"
+          type="checkbox"
+          class="h-4 w-4 accent-zeno-accent"
+          :checked="settings.settings.show_block_counter"
+          @change="
+            settings.update({
+              show_block_counter: ($event.target as HTMLInputElement).checked,
             })
           "
         />

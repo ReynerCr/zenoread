@@ -7,6 +7,11 @@ import type { DocumentSection } from "./types";
  *
  * Temporary glue. Will be replaced by page-number-based re-streaming when
  * file streaming is implemented.
+ *
+ * Known limitation: word offsets are computed with a naive whitespace split in
+ * PdfParser, but block word counts come from tokenize(). The mismatch causes
+ * drift on some PDFs. Empty pages also collapse into the next page's boundary.
+ * Both are resolved by streaming (per-page segmentation, exact boundaries).
  */
 export function mapSectionsToBlocks(
   blocks: WordBlock[],
