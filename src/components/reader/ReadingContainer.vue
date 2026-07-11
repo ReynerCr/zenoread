@@ -2,14 +2,12 @@
 import { computed, ref, shallowRef, watch, onMounted, onBeforeUnmount } from "vue";
 import { storeToRefs } from "pinia";
 import { useSettingsStore } from "../../stores/settings";
-import { usePlayback } from "../../composables/usePlayback";
+import { usePlayback, type SegmentConfig } from "../../composables/usePlayback";
 import { useKeyboardShortcuts } from "../../composables/useKeyboardShortcuts";
 import { useDragDrop } from "../../composables/useDragDrop";
-import { segmentIntoBlocks } from "../../parsing/parser";
 import { loadDocumentFromDialog, loadDocumentFromPath } from "../../documents/fileLoader";
 import { TxtStreamer } from "../../documents/txtStreamer";
-import type { ParsedDocument, DocumentStreamer } from "../../documents/types";
-import type { WordBlock } from "../../parsing/types";
+import type { ParsedDocument } from "../../documents/types";
 import { useDocumentsStore } from "../../stores/documents";
 import { useProgressStore } from "../../stores/progress";
 import { isTauri } from "../../utils/platform";
@@ -23,8 +21,6 @@ const loadedDocument = shallowRef<ParsedDocument | null>(null);
 const savedDocId = ref<string | null>(null);
 const saveState = ref<"idle" | "saving" | "saved">("idle");
 const dropZoneRef = ref<HTMLElement | null>(null);
-const blocksRef = ref<WordBlock[]>([]);
-const streamerRef = shallowRef<DocumentStreamer | null>(null);
 
 useKeyboardShortcuts({
   onTogglePlayPause: togglePlayPause,
@@ -37,6 +33,15 @@ const SAMPLE_TEXT =
   "Welcome to ZenoRead. This is a speed-reading app. " +
   "It uses RSVP to show words quickly. " +
   "Press play to begin, space to pause, and arrows to skip.";
+
+function currentSegmentConfig(): SegmentConfig {
+  return {
+    language: "en" as const,
+    minWords: settings.settings.min_words_screen,
+    maxWords: settings.settings.max_words_screen,
+    splitOnSentenceEnd: settings.settings.split_on_sentence_end,
+  };
+}
 
 const wordStyle = computed(() => ({
   fontSize: `${settings.settings.font_size}px`,
@@ -53,7 +58,7 @@ const hasSections = computed(() => playback.sectionCount.value > 1);
 const totalPages = computed(() => playback.sectionCount.value);
 const currentPage = computed(() => playback.currentSection.value + 1);
 
-function countParagraphBreaks(blocks: WordBlock[], start: number, end: number): number {
+function countParagraphBreaks(blocks: { pauseType: string | null }[], start: number, end: number): number {
   let count = 0;
   for (let i = start; i < end; i++) {
     if (blocks[i]?.pauseType === "paragraph") count++;
@@ -62,9 +67,9 @@ function countParagraphBreaks(blocks: WordBlock[], start: number, end: number): 
 }
 
 const progressLabel = computed(() => {
-  if (playback.totalBlocks.value === 0 || blocksRef.value.length === 0) return "";
+  if (playback.totalBlocks.value === 0 || playback.blocks.value.length === 0) return "";
   const idx = playback.currentIndex.value;
-  const blocks = blocksRef.value;
+  const blocks = playback.blocks.value;
 
   if (hasSections.value) {
     const page = currentPage.value;
@@ -86,32 +91,16 @@ const isPlaying = computed(() => playback.state.value === "play");
 const isPaused = computed(() => playback.state.value === "pause");
 const hasDocument = computed(() => loadedDocument.value !== null);
 
-async function loadSection(sectionIndex: number, startIndex = 0) {
-  const streamer = streamerRef.value;
-  if (!streamer) return;
-
-  const text = await streamer.loadSection(sectionIndex);
-  const blocks = segmentIntoBlocks(text, {
-    language: "en",
-    minWords: settings.settings.min_words_screen,
-    maxWords: settings.settings.max_words_screen,
-    splitOnSentenceEnd: settings.settings.split_on_sentence_end,
-  });
-  blocksRef.value = blocks;
-  playback.load(blocks, settings.settings.wpm_default, settings.settings.pause_multipliers);
-  playback.setSection(sectionIndex, streamer.sectionCount);
-
-  if (startIndex > 0 && startIndex < blocks.length) {
-    playback.seek(startIndex);
-  }
-}
-
 function loadSample() {
   loadedDocument.value = null;
   savedDocId.value = null;
   progressStore.clearProgress();
-  streamerRef.value = new TxtStreamer(SAMPLE_TEXT);
-  void loadSection(0);
+  void playback.attachStreamer(
+    new TxtStreamer(SAMPLE_TEXT),
+    currentSegmentConfig(),
+    settings.settings.wpm_default,
+    settings.settings.pause_multipliers,
+  );
 }
 
 async function openFile() {
@@ -138,7 +127,6 @@ async function openFromLibrary(docId: string) {
       if (!doc) return;
       await openParsedDocument(doc);
     } else {
-      // Web mode cannot read from disk paths — re-open via file dialog.
       await openFile();
     }
   } finally {
@@ -147,24 +135,26 @@ async function openFromLibrary(docId: string) {
 }
 
 async function openParsedDocument(doc: ParsedDocument) {
-  if (streamerRef.value) {
-    await streamerRef.value.close();
-    streamerRef.value = null;
-  }
-
   loadedDocument.value = doc;
   const saved = await documentsStore.saveDocument(doc);
   savedDocId.value = saved?.id ?? null;
 
-  let startPos = { sectionIndex: 0, blockIndex: 0 };
+  let startSection = 0;
+  let startIndex = 0;
   if (savedDocId.value) {
-    startPos = await progressStore.loadProgress(savedDocId.value);
+    const pos = await progressStore.loadProgress(savedDocId.value);
+    startSection = pos.sectionIndex;
+    startIndex = pos.blockIndex;
   }
 
-  streamerRef.value = doc.streamer ?? null;
-  if (streamerRef.value) {
-    await loadSection(startPos.sectionIndex, startPos.blockIndex);
-  }
+  await playback.attachStreamer(
+    doc.streamer,
+    currentSegmentConfig(),
+    settings.settings.wpm_default,
+    settings.settings.pause_multipliers,
+    startSection,
+    startIndex,
+  );
 }
 
 const { isDragOver } = useDragDrop(
@@ -215,19 +205,17 @@ function stopAndSave() {
 }
 
 function prevPage() {
-  const target = playback.currentSection.value - 1;
-  if (target >= 0) void loadSection(target);
+  playback.seekToSection(playback.currentSection.value - 1);
 }
 
 function nextPage() {
-  const target = playback.currentSection.value + 1;
-  if (target < playback.sectionCount.value) void loadSection(target);
+  playback.seekToSection(playback.currentSection.value + 1);
 }
 
 function onPageInput(event: Event) {
   const value = parseInt((event.target as HTMLInputElement).value, 10);
   if (!isNaN(value) && value >= 1 && value <= totalPages.value) {
-    void loadSection(value - 1);
+    playback.seekToSection(value - 1);
   }
 }
 
@@ -237,24 +225,21 @@ function handleBeforeUnload() {
   }
 }
 
-// Reload when block-sizing or splitting settings change, preserving position.
 watch(
   () => [
     settings.settings.min_words_screen,
     settings.settings.max_words_screen,
     settings.settings.split_on_sentence_end,
+    settings.settings.wpm_default,
+    settings.settings.pause_multipliers,
   ],
   () => {
-    if (playback.totalBlocks.value > 0) {
-      void loadSection(playback.currentSection.value, playback.currentIndex.value);
-    }
+    playback.updateSettings(
+      settings.settings.wpm_default,
+      settings.settings.pause_multipliers,
+      currentSegmentConfig(),
+    );
   },
-);
-
-// Push WPM and pause multiplier changes to the controller without reloading.
-watch(
-  () => [settings.settings.wpm_default, settings.settings.pause_multipliers] as const,
-  ([wpm, multipliers]) => playback.updateSettings(wpm, multipliers),
 );
 
 function handleOpenRecent(event: Event) {
@@ -271,7 +256,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", handleBeforeUnload);
   window.removeEventListener("zenoread:open-recent", handleOpenRecent);
-  if (streamerRef.value) void streamerRef.value.close();
+  void playback.detachStreamer();
 });
 </script>
 

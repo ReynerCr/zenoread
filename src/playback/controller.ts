@@ -13,6 +13,7 @@ export interface PlaybackConfig {
 export interface PlaybackEvents {
   onStateChange?: (state: PlaybackState) => void;
   onBlockChange?: (index: number, block: WordBlock) => void;
+  /** Fires when playback reaches the last block. The caller decides what happens next. */
   onFinish?: () => void;
 }
 
@@ -70,6 +71,20 @@ export class PlaybackController {
     this.index = 0;
   }
 
+  /**
+   * Swaps the block list and seeks to startIndex without resetting state.
+   * If playing, reschedules the timer for seamless cross-section transitions.
+   */
+  replaceBlocks(blocks: WordBlock[], startIndex: number): void {
+    this.clearTimer();
+    this.blocks = blocks;
+    this.index = Math.max(0, Math.min(startIndex, blocks.length - 1));
+    this.emitBlock();
+    if (this._state === "play") {
+      this.scheduleCurrent();
+    }
+  }
+
   /** Updates WPM and/or multipliers. Affects the next scheduled block. */
   updateSettings(wpm?: number, multipliers?: PauseMultipliers): void {
     if (wpm !== undefined) this.wpm = wpm;
@@ -77,11 +92,10 @@ export class PlaybackController {
   }
 
   play(): void {
-    if (this._state === "play") return;
+    if (this._state === "play" && !this.isFinished) return;
     if (this.blocks.length === 0) return;
 
-    // Restart from the beginning if we were at the end.
-    if (this.index >= this.blocks.length) {
+    if (this.isFinished) {
       this.index = 0;
     }
 
@@ -156,8 +170,7 @@ export class PlaybackController {
 
   private finish(): void {
     this.clearTimer();
-    this.index = this.blocks.length; // past-end marker
-    this.setState("stop");
+    this.index = this.blocks.length;
     this.events.onFinish?.();
   }
 

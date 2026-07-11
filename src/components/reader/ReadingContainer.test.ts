@@ -272,6 +272,48 @@ describe("ReadingContainer — page navigation", () => {
   });
 });
 
+describe("ReadingContainer — cross-section auto-advance", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("auto-advances to the next section when playback reaches the last block", async () => {
+    const { wrapper } = await mountWithPdfDoc();
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="Play"]').trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("1");
+
+    // Page 1: "Page one text here." → 2 blocks.
+    // Block 0: ["Page","one","text"] → 200ms (no pause).
+    // Block 1: ["here."] → 200ms * 2.5 (period) = 500ms.
+    // sectionEnd fires at 200+500=700ms. Next section (preloaded) replaces
+    // blocks and schedules timer at 700+200=900ms.
+    // Advance 800ms: sectionEnd has fired, we're on page 2, block 0.
+    await vi.advanceTimersByTimeAsync(800);
+
+    expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("2");
+  });
+
+  it("wraps prev() from first block of a section to the last block of the previous section", async () => {
+    const { wrapper } = await mountWithPdfDoc();
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="Next page"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("2");
+
+    await wrapper.find('button[aria-label="Previous block"]').trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("1");
+    const counter = wrapper.find('[data-testid="block-counter"]').text();
+    const blockNum = parseInt(counter.match(/^block (\d+) \//)![1], 10);
+    expect(blockNum).toBeGreaterThan(1);
+  });
+});
+
 describe("ReadingContainer — loading state", () => {
   it("shows loading indicator and disables open button when isLoading is true", async () => {
     const { wrapper } = await mountReader();

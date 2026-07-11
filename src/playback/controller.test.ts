@@ -78,13 +78,12 @@ describe("PlaybackController — block advancement", () => {
   });
 
   it("auto-stops and emits onFinish at the end", () => {
-    const { ctrl, flags, states } = harness(blocks(2));
+    const { ctrl, flags } = harness(blocks(2));
     ctrl.play();
     vi.advanceTimersByTime(200); // → block 1
     vi.advanceTimersByTime(200); // → finish
-    expect(ctrl.state).toBe("stop");
+    expect(ctrl.isFinished).toBe(true);
     expect(flags.finished).toBe(true);
-    expect(states).toContain("stop");
   });
 
   it("respects block duration from pause multipliers", () => {
@@ -97,7 +96,7 @@ describe("PlaybackController — block advancement", () => {
     vi.advanceTimersByTime(200);
     expect(ctrl.currentIndex).toBe(0);
     vi.advanceTimersByTime(300); // total 500ms → finish
-    expect(ctrl.state).toBe("stop");
+    expect(ctrl.isFinished).toBe(true);
   });
 });
 
@@ -141,7 +140,7 @@ describe("PlaybackController — skipping", () => {
     expect(ctrl.currentIndex).toBe(1);
     ctrl.next();
     expect(flags.finished).toBe(true);
-    expect(ctrl.state).toBe("stop");
+    expect(ctrl.isFinished).toBe(true);
   });
 
   it("seek() jumps to a target index", () => {
@@ -220,5 +219,75 @@ describe("PlaybackController — settings update during playback", () => {
     // Now block 1 is scheduled at 600 WPM → 100ms.
     vi.advanceTimersByTime(100);
     expect(ctrl.currentIndex).toBe(2);
+  });
+});
+
+describe("PlaybackController — onFinish", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("fires onFinish when timer reaches the last block", () => {
+    const onFinish = vi.fn();
+    const ctrl = new PlaybackController({ onFinish }, DEFAULT_PAUSE_MULTIPLIERS);
+    ctrl.load({ blocks: blocks(2), wpm: 300, multipliers: DEFAULT_PAUSE_MULTIPLIERS });
+    ctrl.play();
+    vi.advanceTimersByTime(400);
+    expect(onFinish).toHaveBeenCalledOnce();
+  });
+
+  it("fires onFinish on next() at last block", () => {
+    const onFinish = vi.fn();
+    const ctrl = new PlaybackController({ onFinish }, DEFAULT_PAUSE_MULTIPLIERS);
+    ctrl.load({ blocks: blocks(2), wpm: 300, multipliers: DEFAULT_PAUSE_MULTIPLIERS });
+    ctrl.play();
+    ctrl.next();
+    ctrl.next();
+    expect(onFinish).toHaveBeenCalledOnce();
+  });
+
+  it("does not set state to stop — caller decides", () => {
+    const { ctrl } = harness(blocks(2));
+    ctrl.play();
+    vi.advanceTimersByTime(400);
+    expect(ctrl.state).toBe("play");
+    expect(ctrl.isFinished).toBe(true);
+  });
+});
+
+describe("PlaybackController — replaceBlocks", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("swaps blocks and seeks to startIndex while paused", () => {
+    const { ctrl } = harness(blocks(3));
+    ctrl.play();
+    ctrl.pause();
+    const newBlocks = blocks(5);
+    ctrl.replaceBlocks(newBlocks, 2);
+    expect(ctrl.totalBlocks).toBe(5);
+    expect(ctrl.currentIndex).toBe(2);
+    expect(ctrl.state).toBe("pause");
+  });
+
+  it("reschedules timer when playing", () => {
+    const { ctrl, indices } = harness(blocks(3));
+    ctrl.play();
+    expect(indices).toEqual([0]);
+    const newBlocks = blocks(3);
+    ctrl.replaceBlocks(newBlocks, 1);
+    expect(ctrl.currentIndex).toBe(1);
+    expect(indices).toEqual([0, 1]);
+    vi.advanceTimersByTime(200);
+    expect(indices).toEqual([0, 1, 2]);
+  });
+
+  it("clamps startIndex to valid range", () => {
+    const { ctrl } = harness(blocks(3));
+    ctrl.play();
+    ctrl.pause();
+    ctrl.replaceBlocks(blocks(3), 99);
+    expect(ctrl.currentIndex).toBe(2);
+    ctrl.replaceBlocks(blocks(3), -5);
+    expect(ctrl.currentIndex).toBe(0);
   });
 });
