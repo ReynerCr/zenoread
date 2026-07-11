@@ -54,7 +54,9 @@ function makeMockPdf(pages: string[]): PDFDocumentProxy {
       Promise.resolve({
         getTextContent: vi.fn(() =>
           Promise.resolve({
-            items: pages[n - 1].split(" ").map((str) => ({ str })),
+            items: pages[n - 1] === ""
+              ? []
+              : pages[n - 1].split(" ").map((str) => ({ str })),
           }),
         ),
       }),
@@ -80,6 +82,18 @@ const PDF_DOC_WITH_SECTIONS: ParsedDocument = {
   ]), makeMockLoadingTask()),
 };
 
+const PDF_DOC_WITH_EMPTY_PAGE: ParsedDocument = {
+  title: "Scanned PDF",
+  file_path: "/scanned.pdf",
+  file_type: "pdf",
+  language: "en",
+  streamer: new PdfStreamer(makeMockPdf([
+    "Page one text here.",
+    "",
+    "Page three text here.",
+  ]), makeMockLoadingTask()),
+};
+
 async function mountWithPdfDoc() {
   mockLoadDocumentFromDialog.mockResolvedValue(PDF_DOC_WITH_SECTIONS);
   const { wrapper, settings, pinia } = await mountReader();
@@ -91,6 +105,29 @@ async function mountWithPdfDoc() {
     title: "Test PDF",
     section_count: 3,
     file_path: "/test.pdf",
+    created_date: "",
+    modified_date: "",
+    file_type: "pdf",
+    language: "en",
+  });
+  vi.spyOn(progressStore, "loadProgress").mockResolvedValue({ sectionIndex: 0, blockIndex: 0 });
+
+  await wrapper.find('button[aria-label="Open file"]').trigger("click");
+  await flushPromises();
+  return { wrapper, settings, pinia };
+}
+
+async function mountWithEmptyPagePdf() {
+  mockLoadDocumentFromDialog.mockResolvedValue(PDF_DOC_WITH_EMPTY_PAGE);
+  const { wrapper, settings, pinia } = await mountReader();
+
+  const documentsStore = useDocumentsStore();
+  const progressStore = useProgressStore();
+  vi.spyOn(documentsStore, "saveDocument").mockResolvedValue({
+    id: "empty-id",
+    title: "Scanned PDF",
+    section_count: 3,
+    file_path: "/scanned.pdf",
     created_date: "",
     modified_date: "",
     file_type: "pdf",
@@ -311,6 +348,93 @@ describe("ReadingContainer — cross-section auto-advance", () => {
     const counter = wrapper.find('[data-testid="block-counter"]').text();
     const blockNum = parseInt(counter.match(/^block (\d+) \//)![1], 10);
     expect(blockNum).toBeGreaterThan(1);
+  });
+});
+
+describe("ReadingContainer — empty page handling", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("shows empty page message when navigating to an empty page", async () => {
+    const { wrapper } = await mountWithEmptyPagePdf();
+    await flushPromises();
+
+    // Page 1 has text, page 2 is empty.
+    await wrapper.find('button[aria-label="Next page"]').trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="empty-page"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="empty-page"]').text()).toBe("Page 2 has no text content");
+  });
+
+  it("shows 'no text' in progress label for empty pages", async () => {
+    const { wrapper } = await mountWithEmptyPagePdf();
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="Next page"]').trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="progress"]').text()).toBe("Page 2 · no text");
+  });
+
+  it("can navigate past an empty page with next page button", async () => {
+    const { wrapper } = await mountWithEmptyPagePdf();
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="Next page"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('[data-testid="empty-page"]').exists()).toBe(true);
+
+    await wrapper.find('button[aria-label="Next page"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('[data-testid="empty-page"]').exists()).toBe(false);
+    expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("3");
+  });
+
+  it("can navigate back from an empty page with prev page button", async () => {
+    const { wrapper } = await mountWithEmptyPagePdf();
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="Next page"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('[data-testid="empty-page"]').exists()).toBe(true);
+
+    await wrapper.find('button[aria-label="Previous page"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('[data-testid="empty-page"]').exists()).toBe(false);
+    expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("1");
+  });
+
+  it("pauses playback when auto-advancing into an empty page", async () => {
+    const { wrapper } = await mountWithEmptyPagePdf();
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="Play"]').trigger("click");
+    await flushPromises();
+
+    // Page 1: "Page one text here." → 2 blocks.
+    // Block 0: ["Page","one","text"] → 200ms.
+    // Block 1: ["here."] → 200ms * 2.5 (period) = 500ms.
+    // sectionEnd at 700ms → page 2 (empty, preloaded) → pause.
+    await vi.advanceTimersByTimeAsync(800);
+
+    expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("2");
+    expect(wrapper.find('[data-testid="empty-page"]').exists()).toBe(true);
+    // Playback should be paused, not playing.
+    expect(wrapper.find('button[aria-label="Play"]').exists()).toBe(true);
+  });
+
+  it("page input can jump to an empty page", async () => {
+    const { wrapper } = await mountWithEmptyPagePdf();
+    await flushPromises();
+
+    const input = wrapper.find('input[aria-label="Page number"]');
+    await input.setValue("2");
+    await input.trigger("change");
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="empty-page"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="progress"]').text()).toBe("Page 2 · no text");
   });
 });
 

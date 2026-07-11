@@ -67,7 +67,10 @@ function countParagraphBreaks(blocks: { pauseType: string | null }[], start: num
 }
 
 const progressLabel = computed(() => {
-  if (playback.totalBlocks.value === 0 || playback.blocks.value.length === 0) return "";
+  if (playback.blocks.value.length === 0) {
+    if (hasSections.value) return `Page ${currentPage.value} · no text`;
+    return "";
+  }
   const idx = playback.currentIndex.value;
   const blocks = playback.blocks.value;
 
@@ -90,6 +93,8 @@ const blockCounterLabel = computed(() => {
 const isPlaying = computed(() => playback.state.value === "play");
 const isPaused = computed(() => playback.state.value === "pause");
 const hasDocument = computed(() => loadedDocument.value !== null);
+const isEmptyPage = computed(() => playback.isEmptySection.value && hasSections.value);
+const emptyPageLabel = computed(() => `Page ${currentPage.value} has no text content`);
 
 function loadSample() {
   loadedDocument.value = null;
@@ -288,6 +293,13 @@ onBeforeUnmount(() => {
         :style="wordStyle"
       >
         {{ displayText }}
+      </p>
+      <p
+        v-else-if="isEmptyPage"
+        data-testid="empty-page"
+        class="text-sm text-zeno-muted text-center"
+      >
+        {{ emptyPageLabel }}
       </p>
       <p v-else class="text-sm text-zeno-muted">
         Load a document to start reading.

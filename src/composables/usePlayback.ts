@@ -1,4 +1,4 @@
-import { ref, shallowRef, onUnmounted } from "vue";
+import { computed, ref, shallowRef, onUnmounted } from "vue";
 import { PlaybackController, type PlaybackState } from "../playback/controller";
 import type { WordBlock } from "../parsing/types";
 import type { SupportedLanguage } from "../parsing/types";
@@ -18,7 +18,7 @@ export interface SegmentConfig {
  *
  * Owns section loading, caching, and preloading. The controller drives
  * block-level playback; this composable handles cross-section transitions
- * by listening to `onSectionEnd` and wrapping `prev()`.
+ * via `onFinish` and wraps `prev()` for backward section jumps.
  */
 export function usePlayback() {
   const state = ref<PlaybackState>("stop");
@@ -30,6 +30,7 @@ export function usePlayback() {
   const sectionCount = ref(0);
   const blocks = ref<WordBlock[]>([]);
   const isTransitioning = ref(false);
+  const isEmptySection = computed(() => blocks.value.length === 0);
 
   const controller = shallowRef<PlaybackController | null>(null);
   const streamer = shallowRef<DocumentStreamer | null>(null);
@@ -170,6 +171,11 @@ export function usePlayback() {
       blocks.value = cached;
       currentSection.value = next;
       totalBlocks.value = controller.value?.totalBlocks ?? 0;
+      if (cached.length === 0) {
+        currentBlock.value = null;
+        currentIndex.value = 0;
+        controller.value?.pause();
+      }
       preloadNext();
       return;
     }
@@ -182,8 +188,12 @@ export function usePlayback() {
     blocks.value = nextBlocks;
     currentSection.value = next;
     totalBlocks.value = controller.value?.totalBlocks ?? 0;
+    if (nextBlocks.length === 0) {
+      currentBlock.value = null;
+      currentIndex.value = 0;
+    }
     isTransitioning.value = false;
-    if (wasPlaying) controller.value?.play();
+    if (wasPlaying && nextBlocks.length > 0) controller.value?.play();
     preloadNext();
   }
 
@@ -228,6 +238,7 @@ export function usePlayback() {
     sectionCount,
     blocks,
     isTransitioning,
+    isEmptySection,
     attachStreamer,
     detachStreamer,
     loadSection,
