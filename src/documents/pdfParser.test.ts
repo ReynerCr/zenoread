@@ -10,6 +10,7 @@ const meta = (over: Partial<DocumentMetadata> = {}): DocumentMetadata => ({
 });
 
 function mockPdfjsLib(pages: { text: string }[], info: Record<string, unknown> = {}) {
+  const destroy = vi.fn(() => Promise.resolve());
   return {
     GlobalWorkerOptions: { workerPort: null, workerSrc: "" },
     getDocument: vi.fn(() => ({
@@ -21,9 +22,9 @@ function mockPdfjsLib(pages: { text: string }[], info: Record<string, unknown> =
             items: pages[n - 1].text.split(" ").map((str) => ({ str })),
           })),
         })),
-        destroy: vi.fn(() => Promise.resolve()),
+        destroy,
       }),
-      destroy: vi.fn(() => Promise.resolve()),
+      destroy,
     })),
   };
 }
@@ -33,7 +34,7 @@ beforeEach(() => {
 });
 
 describe("PdfParser — text extraction", () => {
-  it("extracts text from all pages into the streamer", async () => {
+  it("returns a streamer that loads pages on demand", async () => {
     vi.doMock("pdfjs-dist", () => mockPdfjsLib([
       { text: "Hello world" },
       { text: "from PDF" },
@@ -82,18 +83,30 @@ describe("PdfParser — text extraction", () => {
   });
 });
 
-describe("PdfParser — edge cases", () => {
-  it("returns empty page texts when PDF has no text layer", async () => {
+describe("PdfParser — validation", () => {
+  it("throws when all pages are empty (scanned document)", async () => {
     vi.doMock("pdfjs-dist", () => mockPdfjsLib([{ text: "" }, { text: "" }]));
+    vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
+    const { PdfParser } = await import("./pdfParser");
+    const parser = new PdfParser();
+    await expect(parser.parse(new Uint8Array([1]), meta())).rejects.toThrow(
+      "This PDF doesn't contain any text. It may be a fully scanned document.",
+    );
+  });
+
+  it("does not throw when some pages are empty", async () => {
+    vi.doMock("pdfjs-dist", () => mockPdfjsLib([{ text: "" }, { text: "page two text" }]));
     vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
     const { PdfParser } = await import("./pdfParser");
     const parser = new PdfParser();
     const result = await parser.parse(new Uint8Array([1]), meta());
     expect(result.streamer.sectionCount).toBe(2);
     expect(await result.streamer.loadSection(0)).toBe("");
-    expect(await result.streamer.loadSection(1)).toBe("");
+    expect(await result.streamer.loadSection(1)).toBe("page two text");
   });
+});
 
+describe("PdfParser — edge cases", () => {
   it("accepts string input by encoding it", async () => {
     vi.doMock("pdfjs-dist", () => mockPdfjsLib([{ text: "Text content" }]));
     vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
