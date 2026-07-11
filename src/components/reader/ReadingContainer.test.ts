@@ -438,6 +438,91 @@ describe("ReadingContainer — empty page handling", () => {
   });
 });
 
+function makePdfDoc(title: string, pages: string[]): { doc: ParsedDocument; destroy: ReturnType<typeof vi.fn> } {
+  const destroy = vi.fn(() => Promise.resolve());
+  const loadingTask = { destroy } as unknown as PDFDocumentLoadingTask;
+  const streamer = new PdfStreamer(makeMockPdf(pages), loadingTask);
+  return {
+    doc: { title, file_path: `/${title}.pdf`, file_type: "pdf", language: "en", streamer },
+    destroy,
+  };
+}
+
+async function mountWithDoc(
+  doc: ParsedDocument,
+  id: string,
+): Promise<{ wrapper: ReturnType<typeof mount>; settings: ReturnType<typeof useSettingsStore>; pinia: ReturnType<typeof createPinia> }> {
+  mockLoadDocumentFromDialog.mockResolvedValue(doc);
+  const { wrapper, settings, pinia } = await mountReader();
+
+  const documentsStore = useDocumentsStore();
+  const progressStore = useProgressStore();
+  vi.spyOn(documentsStore, "saveDocument").mockResolvedValue({
+    id,
+    title: doc.title,
+    section_count: doc.streamer.sectionCount,
+    file_path: doc.file_path,
+    created_date: "",
+    modified_date: "",
+    file_type: "pdf",
+    language: "en",
+  });
+  vi.spyOn(progressStore, "loadProgress").mockResolvedValue({ sectionIndex: 0, blockIndex: 0 });
+
+  await wrapper.find('button[aria-label="Open file"]').trigger("click");
+  await flushPromises();
+  return { wrapper, settings, pinia };
+}
+
+describe("ReadingContainer — streamer lifecycle", () => {
+  it("closes the previous streamer when opening a new document", async () => {
+    const first = makePdfDoc("First Doc", ["First page text."]);
+    const { wrapper } = await mountWithDoc(first.doc, "first-id");
+    await flushPromises();
+
+    const second = makePdfDoc("Second Doc", ["Second page text."]);
+    mockLoadDocumentFromDialog.mockResolvedValue(second.doc);
+    const documentsStore = useDocumentsStore();
+    vi.spyOn(documentsStore, "saveDocument").mockResolvedValue({
+      id: "second-id",
+      title: "Second Doc",
+      section_count: 1,
+      file_path: "/Second Doc.pdf",
+      created_date: "",
+      modified_date: "",
+      file_type: "pdf",
+      language: "en",
+    });
+
+    await wrapper.find('button[aria-label="Open file"]').trigger("click");
+    await flushPromises();
+
+    expect(first.destroy).toHaveBeenCalled();
+  });
+
+  it("closes the streamer on component unmount", async () => {
+    const { doc, destroy } = makePdfDoc("Unmount Doc", ["Only page text."]);
+    const { wrapper } = await mountWithDoc(doc, "unmount-id");
+    await flushPromises();
+
+    wrapper.unmount();
+    await flushPromises();
+
+    expect(destroy).toHaveBeenCalled();
+  });
+
+  it("closes the streamer on beforeunload", async () => {
+    const { doc, destroy } = makePdfDoc("Unload Doc", ["Only page text."]);
+    await mountWithDoc(doc, "unload-id");
+    await flushPromises();
+
+    window.dispatchEvent(new Event("beforeunload"));
+    await flushPromises();
+
+    expect(destroy).toHaveBeenCalled();
+  });
+});
+
 describe("ReadingContainer — loading state", () => {
   it("shows loading indicator and disables open button when isLoading is true", async () => {
     const { wrapper } = await mountReader();

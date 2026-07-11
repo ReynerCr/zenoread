@@ -228,6 +228,7 @@ function handleBeforeUnload() {
   if (savedDocId.value && playback.state.value !== "stop") {
     saveCurrentProgress();
   }
+  void playback.detachStreamer();
 }
 
 watch(
