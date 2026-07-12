@@ -27,3 +27,9 @@ playwright/.cache
 *.njsproj
 *.sln
 *.sw?
+
+### Internal Planning
+docs/plans/
+
+### Internal Testing for books and txt files
+testing-files/
