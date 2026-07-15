@@ -247,22 +247,17 @@ watch(
   },
 );
 
-function handleOpenRecent(event: Event) {
-  const detail = (event as CustomEvent).detail;
-  if (detail?.docId) void openFromLibrary(detail.docId);
-}
-
 onMounted(() => {
   loadSample();
   window.addEventListener("beforeunload", handleBeforeUnload);
-  window.addEventListener("zenoread:open-recent", handleOpenRecent);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", handleBeforeUnload);
-  window.removeEventListener("zenoread:open-recent", handleOpenRecent);
   void playback.detachStreamer();
 });
+
+defineExpose({ openFromLibrary });
 </script>
 
 <template>

@@ -6,6 +6,7 @@ import RecentDocuments from "./RecentDocuments.vue";
 
 const settingsOpen = ref(false);
 const recentOpen = ref(false);
+const readerRef = ref<InstanceType<typeof ReadingContainer> | null>(null);
 
 function toggleSettings() {
   settingsOpen.value = !settingsOpen.value;
@@ -13,6 +14,10 @@ function toggleSettings() {
 
 function toggleRecent() {
   recentOpen.value = !recentOpen.value;
+}
+
+function handleOpenDoc(docId: string) {
+  readerRef.value?.openFromLibrary(docId);
 }
 </script>
 
@@ -41,9 +46,9 @@ function toggleRecent() {
     </header>
 
     <div class="flex min-h-0 flex-1">
-      <RecentDocuments :open="recentOpen" @close="recentOpen = false" />
+      <RecentDocuments :open="recentOpen" @close="recentOpen = false" @open-doc="handleOpenDoc" />
       <main class="min-w-0 flex-1">
-        <ReadingContainer />
+        <ReadingContainer ref="readerRef" />
       </main>
       <SettingsSidebar :open="settingsOpen" @close="settingsOpen = false" />
     </div>

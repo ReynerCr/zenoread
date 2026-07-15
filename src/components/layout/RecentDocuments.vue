@@ -5,7 +5,7 @@ import { useDocumentsStore } from "../../stores/documents";
 import { isTauri } from "../../utils/platform";
 
 defineProps<{ open: boolean }>();
-const emit = defineEmits<{ (e: "close"): void }>();
+const emit = defineEmits<{ (e: "close"): void; (e: "open-doc", docId: string): void }>();
 
 const documentsStore = useDocumentsStore();
 const { isLoading } = storeToRefs(documentsStore);
@@ -33,8 +33,7 @@ function formatRelativeDate(iso: string): string {
 
 function handleOpenDoc(docId: string) {
   emit("close");
-  // Emit a custom event that ReadingContainer listens for.
-  window.dispatchEvent(new CustomEvent("zenoread:open-recent", { detail: { docId } }));
+  emit("open-doc", docId);
 }
 </script>
 
