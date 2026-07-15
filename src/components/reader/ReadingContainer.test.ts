@@ -6,8 +6,8 @@ import { useSettingsStore } from "../../stores/settings";
 import { useDocumentsStore } from "../../stores/documents";
 import { useProgressStore } from "../../stores/progress";
 import { PdfStreamer } from "../../documents/pdfStreamer";
+import { makeMockPdf, makeMockLoadingTask } from "../../documents/testHelpers";
 import type { ParsedDocument } from "../../documents/types";
-import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist";
 
 const mockLoadDocumentFromDialog = vi.hoisted(() => vi.fn());
 vi.mock("../../documents/fileLoader", () => ({
@@ -45,29 +45,6 @@ async function mountReader() {
   });
   await flushPromises();
   return { wrapper, settings, pinia };
-}
-
-function makeMockPdf(pages: string[]): PDFDocumentProxy {
-  return {
-    numPages: pages.length,
-    getPage: vi.fn((n: number) =>
-      Promise.resolve({
-        getTextContent: vi.fn(() =>
-          Promise.resolve({
-            items: pages[n - 1] === ""
-              ? []
-              : pages[n - 1].split(" ").map((str) => ({ str })),
-          }),
-        ),
-      }),
-    ),
-  } as unknown as PDFDocumentProxy;
-}
-
-function makeMockLoadingTask(): PDFDocumentLoadingTask {
-  return {
-    destroy: vi.fn(() => Promise.resolve()),
-  } as unknown as PDFDocumentLoadingTask;
 }
 
 const PDF_DOC_WITH_SECTIONS: ParsedDocument = {
@@ -439,12 +416,11 @@ describe("ReadingContainer — empty page handling", () => {
 });
 
 function makePdfDoc(title: string, pages: string[]): { doc: ParsedDocument; destroy: ReturnType<typeof vi.fn> } {
-  const destroy = vi.fn(() => Promise.resolve());
-  const loadingTask = { destroy } as unknown as PDFDocumentLoadingTask;
+  const loadingTask = makeMockLoadingTask();
   const streamer = new PdfStreamer(makeMockPdf(pages), loadingTask);
   return {
     doc: { title, file_path: `/${title}.pdf`, file_type: "pdf", language: "en", streamer },
-    destroy,
+    destroy: loadingTask.destroy as any,
   };
 }
 
