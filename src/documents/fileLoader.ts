@@ -5,28 +5,7 @@ import type { ParsedDocument } from "./types";
 import type { FileType } from "../db/schemas/documents.schema";
 import { isTauri } from "../utils/platform";
 import { reportError, AppError } from "../utils/errors";
-
-const EXTENSION_TO_TYPE: Record<string, FileType> = {
-  txt: "txt",
-  pdf: "pdf",
-};
-
-const BINARY_TYPES: ReadonlySet<FileType> = new Set(["pdf"]);
-
-function detectFileType(filename: string): FileType | null {
-  const ext = filename.split(".").pop()?.toLowerCase();
-  if (!ext) return null;
-  return EXTENSION_TO_TYPE[ext] ?? null;
-}
-
-function isBinaryType(fileType: FileType): boolean {
-  return BINARY_TYPES.has(fileType);
-}
-
-function titleFromFilename(filename: string): string {
-  const base = filename.split("/").pop() ?? filename;
-  return base.replace(/\.[^.]+$/, "");
-}
+import { detectFileType, isBinaryType, titleFromFilename } from "./fileUtils";
 
 async function readFileFromPath(filePath: string, fileType: FileType): Promise<string | Uint8Array> {
   if (isBinaryType(fileType)) {
