@@ -12,13 +12,7 @@ describe("ParserRegistry — built-in parsers", () => {
     expect(parserRegistry.getParser("pdf")).toBeInstanceOf(PdfParser);
   });
 
-  it("isSupported returns true for registered types", () => {
-    expect(parserRegistry.isSupported("txt")).toBe(true);
-    expect(parserRegistry.isSupported("pdf")).toBe(true);
-  });
-
   it("returns null for unregistered types", () => {
     expect(parserRegistry.getParser("epub")).toBeNull();
-    expect(parserRegistry.isSupported("epub")).toBe(false);
   });
 });

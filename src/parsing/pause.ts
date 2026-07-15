@@ -1,5 +1,5 @@
 import type { PauseMultipliers } from "../db/schemas/userSettings.schema";
-import type { PunctuationType, WordBlock } from "./types";
+import type { WordBlock } from "./types";
 
 const MS_PER_MINUTE = 60_000;
 
@@ -25,12 +25,4 @@ export function computeBlockDuration(
     ? multipliers[block.pauseType]
     : 1;
   return baseInterval * wordCount * multiplier;
-}
-
-/** Convenience: returns just the multiplier for a punctuation type (1 if null). */
-export function pauseMultiplier(
-  type: PunctuationType | null,
-  multipliers: PauseMultipliers,
-): number {
-  return type ? multipliers[type] : 1;
 }

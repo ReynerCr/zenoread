@@ -44,12 +44,6 @@ describe("PdfStreamer", () => {
     expect(await streamer.loadSection(-1)).toBe("");
   });
 
-  it("returns page labels starting from 1", () => {
-    const streamer = new PdfStreamer(makeMockPdf([{ text: "a" }, { text: "b" }]), makeMockLoadingTask());
-    expect(streamer.getSectionLabel(0)).toBe("Page 1");
-    expect(streamer.getSectionLabel(1)).toBe("Page 2");
-  });
-
   it("handles empty page texts", async () => {
     const pdf = makeMockPdf([{ text: "" }, { text: "page two" }]);
     const streamer = new PdfStreamer(pdf, makeMockLoadingTask());

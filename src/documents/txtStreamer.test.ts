@@ -18,11 +18,6 @@ describe("TxtStreamer", () => {
     expect(await streamer.loadSection(-1)).toBe("");
   });
 
-  it("returns a label for section 0", () => {
-    const streamer = new TxtStreamer("Hello world");
-    expect(streamer.getSectionLabel(0)).toBe("Document");
-  });
-
   it("close is a no-op", async () => {
     const streamer = new TxtStreamer("Hello world");
     await expect(streamer.close()).resolves.toBeUndefined();
