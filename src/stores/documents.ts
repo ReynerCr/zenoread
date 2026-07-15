@@ -103,21 +103,6 @@ export const useDocumentsStore = defineStore("documents", () => {
     }
   }
 
-  async function deleteDocument(id: string): Promise<void> {
-    try {
-      const db = await getDatabase();
-      const doc = await db.documents.findOne({ selector: { id } }).exec();
-      if (doc) {
-        await doc.remove();
-        if (currentDocument.value?.id === id) {
-          currentDocument.value = null;
-        }
-      }
-    } catch (error) {
-      reportError(error, "Could not delete the document.", { context: "documents.deleteDocument" });
-    }
-  }
-
   function setCurrent(doc: DocumentDocType | null): void {
     currentDocument.value = doc;
   }
@@ -130,7 +115,6 @@ export const useDocumentsStore = defineStore("documents", () => {
     init,
     saveDocument,
     getDocument,
-    deleteDocument,
     setCurrent,
   };
 });
