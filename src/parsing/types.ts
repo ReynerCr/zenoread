@@ -12,10 +12,7 @@ export interface WordBlock {
   pauseType: PunctuationType | null;
 }
 
-export type SupportedLanguage = "en" | "es";
-
 export interface ParseOptions {
-  language: SupportedLanguage;
   minWords: number;
   maxWords: number;
   /** When true, strips combining diacritics (NFD decomposition). Default: false. */

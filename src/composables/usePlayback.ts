@@ -1,13 +1,11 @@
 import { computed, ref, shallowRef, onUnmounted } from "vue";
 import { PlaybackController, type PlaybackState } from "../playback/controller";
 import type { WordBlock } from "../parsing/types";
-import type { SupportedLanguage } from "../parsing/types";
 import type { PauseMultipliers } from "../db/schemas/userSettings.schema";
 import type { DocumentStreamer } from "../documents/types";
 import { segmentIntoBlocks } from "../parsing/parser";
 
 export interface SegmentConfig {
-  language: SupportedLanguage;
   minWords: number;
   maxWords: number;
   splitOnSentenceEnd: boolean;
@@ -64,7 +62,6 @@ export function usePlayback() {
     if (!s || !cfg) return [];
     const text = await s.loadSection(sectionIndex);
     const result = segmentIntoBlocks(text, {
-      language: cfg.language,
       minWords: cfg.minWords,
       maxWords: cfg.maxWords,
       splitOnSentenceEnd: cfg.splitOnSentenceEnd,

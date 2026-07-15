@@ -36,7 +36,6 @@ const SAMPLE_TEXT =
 
 function currentSegmentConfig(): SegmentConfig {
   return {
-    language: "en" as const,
     minWords: settings.settings.min_words_screen,
     maxWords: settings.settings.max_words_screen,
     splitOnSentenceEnd: settings.settings.split_on_sentence_end,

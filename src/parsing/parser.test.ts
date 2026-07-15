@@ -3,7 +3,6 @@ import { segmentIntoBlocks } from "./parser";
 import type { ParseOptions } from "./types";
 
 const opts = (over: Partial<ParseOptions> = {}): ParseOptions => ({
-  language: "en",
   minWords: 1,
   maxWords: 3,
   ...over,
