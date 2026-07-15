@@ -86,6 +86,11 @@ async function createDatabase(): Promise<ZenoDatabase> {
           void total_words;
           return { ...rest, section_count: 1 };
         },
+        3: (doc) => {
+          // v2→v3: removed "md" from file_type enum. No md parser was ever
+          // built, so no document should have this value. Passthrough.
+          return doc;
+        },
       },
     },
     reading_progress: {

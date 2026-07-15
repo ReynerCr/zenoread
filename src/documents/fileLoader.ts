@@ -8,12 +8,10 @@ import { reportError, AppError } from "../utils/errors";
 
 const EXTENSION_TO_TYPE: Record<string, FileType> = {
   txt: "txt",
-  md: "md",
   pdf: "pdf",
-  epub: "epub",
 };
 
-const BINARY_TYPES: ReadonlySet<FileType> = new Set(["pdf", "epub"]);
+const BINARY_TYPES: ReadonlySet<FileType> = new Set(["pdf"]);
 
 function detectFileType(filename: string): FileType | null {
   const ext = filename.split(".").pop()?.toLowerCase();

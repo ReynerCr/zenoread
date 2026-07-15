@@ -7,9 +7,7 @@ import { reportError } from "../utils/errors";
 
 const EXTENSION_TO_TYPE: Record<string, FileType> = {
   txt: "txt",
-  md: "md",
   pdf: "pdf",
-  epub: "epub",
 };
 
 function detectFileType(filename: string): FileType | null {
