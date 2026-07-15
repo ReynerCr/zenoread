@@ -22,12 +22,10 @@ export function usePlayback() {
   const state = ref<PlaybackState>("stop");
   const currentIndex = ref(0);
   const currentBlock = ref<WordBlock | null>(null);
-  const isFinished = ref(false);
   const totalBlocks = ref(0);
   const currentSection = ref(0);
   const sectionCount = ref(0);
   const blocks = ref<WordBlock[]>([]);
-  const isTransitioning = ref(false);
   const isEmptySection = computed(() => blocks.value.length === 0);
 
   const controller = shallowRef<PlaybackController | null>(null);
@@ -84,7 +82,6 @@ export function usePlayback() {
     wpm.value = w;
     multipliers.value = mult;
     cache.clear();
-    isFinished.value = false;
     await loadSection(startSection, startIndex);
   }
 
@@ -112,7 +109,6 @@ export function usePlayback() {
     state.value = controller.value.state;
     currentIndex.value = controller.value.currentIndex;
     currentBlock.value = controller.value.currentBlock;
-    isFinished.value = false;
     totalBlocks.value = controller.value.totalBlocks;
     currentSection.value = sectionIndex;
     sectionCount.value = s.sectionCount;
@@ -155,7 +151,6 @@ export function usePlayback() {
   async function handleSectionEnd(): Promise<void> {
     const next = currentSection.value + 1;
     if (next >= sectionCount.value) {
-      isFinished.value = true;
       controller.value?.stop();
       return;
     }
@@ -177,7 +172,6 @@ export function usePlayback() {
       return;
     }
 
-    isTransitioning.value = true;
     controller.value?.pause();
     const nextBlocks = await loadSectionBlocks(next);
     if (streamer.value === null) return;
@@ -189,7 +183,6 @@ export function usePlayback() {
       currentBlock.value = null;
       currentIndex.value = 0;
     }
-    isTransitioning.value = false;
     if (wasPlaying && nextBlocks.length > 0) controller.value?.play();
     preloadNext();
   }
@@ -218,8 +211,6 @@ export function usePlayback() {
     }
   }
 
-  const seek = (i: number) => controller.value?.seek(i);
-
   onUnmounted(() => {
     controller.value?.stop();
     if (streamer.value) void streamer.value.close();
@@ -229,16 +220,13 @@ export function usePlayback() {
     state,
     currentIndex,
     currentBlock,
-    isFinished,
     totalBlocks,
     currentSection,
     sectionCount,
     blocks,
-    isTransitioning,
     isEmptySection,
     attachStreamer,
     detachStreamer,
-    loadSection,
     seekToSection,
     updateSettings,
     play,
@@ -246,6 +234,5 @@ export function usePlayback() {
     stop,
     next,
     prev,
-    seek,
   };
 }
