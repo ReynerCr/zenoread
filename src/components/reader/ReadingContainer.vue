@@ -109,19 +109,19 @@ function loadSample() {
 
 async function openFile() {
   if (isLoading.value) return;
-  isLoading.value = true;
+  documentsStore.setLoading(true);
   try {
     const doc = await loadDocumentFromDialog();
     if (!doc) return;
     await openParsedDocument(doc);
   } finally {
-    isLoading.value = false;
+    documentsStore.setLoading(false);
   }
 }
 
 async function openFromLibrary(docId: string) {
   if (isLoading.value) return;
-  isLoading.value = true;
+  documentsStore.setLoading(true);
   try {
     const meta = await documentsStore.getDocument(docId);
     if (!meta) return;
@@ -134,7 +134,7 @@ async function openFromLibrary(docId: string) {
       await openFile();
     }
   } finally {
-    isLoading.value = false;
+    documentsStore.setLoading(false);
   }
 }
 
@@ -165,11 +165,11 @@ const { isDragOver } = useDragDrop(
   dropZoneRef,
   async (doc) => {
     if (isLoading.value) return;
-    isLoading.value = true;
+    documentsStore.setLoading(true);
     try {
       await openParsedDocument(doc);
     } finally {
-      isLoading.value = false;
+      documentsStore.setLoading(false);
     }
   },
   isLoading,

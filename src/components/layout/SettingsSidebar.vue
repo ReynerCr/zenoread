@@ -71,7 +71,7 @@ function resetAllSettings() {
 async function resetAppData() {
   if (!confirm("Delete ALL app data (settings, documents, progress)? This cannot be undone.")) return;
   await resetDatabase();
-  documentsStore.documents = [];
+  documentsStore.clearAll();
   documentsStore.setCurrent(null);
   progressStore.clearProgress();
   // Reload to ensure all stores re-initialize from the fresh database.

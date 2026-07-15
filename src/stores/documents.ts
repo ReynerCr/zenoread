@@ -107,6 +107,14 @@ export const useDocumentsStore = defineStore("documents", () => {
     currentDocument.value = doc;
   }
 
+  function setLoading(value: boolean): void {
+    isLoading.value = value;
+  }
+
+  function clearAll(): void {
+    documents.value = [];
+  }
+
   return {
     documents,
     currentDocument,
@@ -116,5 +124,7 @@ export const useDocumentsStore = defineStore("documents", () => {
     saveDocument,
     getDocument,
     setCurrent,
+    setLoading,
+    clearAll,
   };
 });
