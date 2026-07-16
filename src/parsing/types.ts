@@ -15,8 +15,6 @@ export interface WordBlock {
 export interface ParseOptions {
   minWords: number;
   maxWords: number;
-  /** When true, strips combining diacritics (NFD decomposition). Default: false. */
-  stripDiacritics?: boolean;
   /**
    * When true (default), sentence-ending punctuation (., ?, !) forces a block
    * break. When false, blocks only break at maxWords or paragraph boundaries;

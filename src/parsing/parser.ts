@@ -27,7 +27,7 @@ const SENTENCE_ENDERS = new Set<PunctuationType>([
  * across a sentence or paragraph boundary.
  */
 export function segmentIntoBlocks(raw: string, options: ParseOptions): WordBlock[] {
-  const { minWords, maxWords, stripDiacritics, splitOnSentenceEnd = true } = options;
+  const { minWords, maxWords, splitOnSentenceEnd = true } = options;
   if (!raw || !raw.trim()) return [];
 
   const paragraphs = raw.split(PARAGRAPH_SPLIT);
@@ -40,7 +40,7 @@ export function segmentIntoBlocks(raw: string, options: ParseOptions): WordBlock
     // Collapse soft line breaks inside a paragraph into spaces; a lone newline
     // is treated as a soft break, not a paragraph boundary.
     const text = paragraph.replace(SOFT_LINE_BREAK, " ");
-    const tokens = tokenize(text, stripDiacritics);
+    const tokens = tokenize(text);
 
     let current: string[] = [];
     let currentPause: PunctuationType | null = null;
