@@ -17,10 +17,6 @@ export class PdfStreamer implements DocumentStreamer {
     this.sectionCount = pdf.numPages;
   }
 
-  getSectionLabel(i: number): string {
-    return `Page ${i + 1}`;
-  }
-
   async loadSection(i: number): Promise<string> {
     if (i < 0 || i >= this.sectionCount) return "";
     const page = await this.pdf.getPage(i + 1);

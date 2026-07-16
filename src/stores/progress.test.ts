@@ -39,7 +39,6 @@ describe("progress store — loadProgress", () => {
       section_index: 3,
       block_index_in_section: 7,
       last_read_date: "2026-01-01T00:00:00.000Z",
-      reading_time_total: 60000,
       completion_percentage: 50,
     };
     mockFindOne.mockReturnValue({
@@ -64,7 +63,6 @@ describe("progress store — saveProgress", () => {
     expect(inserted.section_index).toBe(2);
     expect(inserted.block_index_in_section).toBe(5);
     expect(inserted.completion_percentage).toBe(23);
-    expect(inserted.reading_time_total).toBe(0);
   });
 
   it("updates an existing progress record", async () => {
@@ -74,7 +72,6 @@ describe("progress store — saveProgress", () => {
       section_index: 0,
       block_index_in_section: 5,
       last_read_date: "2026-01-01T00:00:00.000Z",
-      reading_time_total: 30000,
       completion_percentage: 25,
     };
     mockFindOne.mockReturnValue({
@@ -115,7 +112,6 @@ describe("progress store — clearProgress", () => {
       section_index: 0,
       block_index_in_section: 5,
       last_read_date: "",
-      reading_time_total: 0,
       completion_percentage: 25,
     };
     mockFindOne.mockReturnValue({

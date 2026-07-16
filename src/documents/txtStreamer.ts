@@ -12,10 +12,6 @@ export class TxtStreamer implements DocumentStreamer {
     this.text = text;
   }
 
-  getSectionLabel(i: number): string {
-    return i === 0 ? "Document" : "";
-  }
-
   async loadSection(i: number): Promise<string> {
     if (i !== 0) return "";
     return this.text;

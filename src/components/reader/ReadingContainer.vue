@@ -36,7 +36,6 @@ const SAMPLE_TEXT =
 
 function currentSegmentConfig(): SegmentConfig {
   return {
-    language: "en" as const,
     minWords: settings.settings.min_words_screen,
     maxWords: settings.settings.max_words_screen,
     splitOnSentenceEnd: settings.settings.split_on_sentence_end,
@@ -110,19 +109,19 @@ function loadSample() {
 
 async function openFile() {
   if (isLoading.value) return;
-  isLoading.value = true;
+  documentsStore.setLoading(true);
   try {
     const doc = await loadDocumentFromDialog();
     if (!doc) return;
     await openParsedDocument(doc);
   } finally {
-    isLoading.value = false;
+    documentsStore.setLoading(false);
   }
 }
 
 async function openFromLibrary(docId: string) {
   if (isLoading.value) return;
-  isLoading.value = true;
+  documentsStore.setLoading(true);
   try {
     const meta = await documentsStore.getDocument(docId);
     if (!meta) return;
@@ -135,7 +134,7 @@ async function openFromLibrary(docId: string) {
       await openFile();
     }
   } finally {
-    isLoading.value = false;
+    documentsStore.setLoading(false);
   }
 }
 
@@ -166,11 +165,11 @@ const { isDragOver } = useDragDrop(
   dropZoneRef,
   async (doc) => {
     if (isLoading.value) return;
-    isLoading.value = true;
+    documentsStore.setLoading(true);
     try {
       await openParsedDocument(doc);
     } finally {
-      isLoading.value = false;
+      documentsStore.setLoading(false);
     }
   },
   isLoading,
@@ -248,22 +247,17 @@ watch(
   },
 );
 
-function handleOpenRecent(event: Event) {
-  const detail = (event as CustomEvent).detail;
-  if (detail?.docId) void openFromLibrary(detail.docId);
-}
-
 onMounted(() => {
   loadSample();
   window.addEventListener("beforeunload", handleBeforeUnload);
-  window.addEventListener("zenoread:open-recent", handleOpenRecent);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", handleBeforeUnload);
-  window.removeEventListener("zenoread:open-recent", handleOpenRecent);
   void playback.detachStreamer();
 });
+
+defineExpose({ openFromLibrary });
 </script>
 
 <template>

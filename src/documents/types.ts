@@ -15,7 +15,6 @@ export interface DocumentMetadata {
  */
 export interface DocumentStreamer {
   sectionCount: number;
-  getSectionLabel(i: number): string;
   loadSection(i: number): Promise<string>;
   close(): Promise<void>;
 }

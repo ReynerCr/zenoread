@@ -2,21 +2,8 @@ import { ref, onMounted, onBeforeUnmount, type Ref } from "vue";
 import { isTauri } from "../utils/platform";
 import type { ParsedDocument } from "../documents/types";
 import { loadDocumentFromPath, loadDocumentFromFile } from "../documents/fileLoader";
-import type { FileType } from "../db/schemas/documents.schema";
+import { detectFileType } from "../documents/fileUtils";
 import { reportError } from "../utils/errors";
-
-const EXTENSION_TO_TYPE: Record<string, FileType> = {
-  txt: "txt",
-  md: "md",
-  pdf: "pdf",
-  epub: "epub",
-};
-
-function detectFileType(filename: string): FileType | null {
-  const ext = filename.split(".").pop()?.toLowerCase();
-  if (!ext) return null;
-  return EXTENSION_TO_TYPE[ext] ?? null;
-}
 
 /**
  * Provides drag-and-drop file loading. On Tauri, uses the webview's

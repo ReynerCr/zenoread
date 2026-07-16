@@ -86,6 +86,11 @@ async function createDatabase(): Promise<ZenoDatabase> {
           void total_words;
           return { ...rest, section_count: 1 };
         },
+        3: (doc) => {
+          // v2→v3: removed "md" from file_type enum. No md parser was ever
+          // built, so no document should have this value. Passthrough.
+          return doc;
+        },
       },
     },
     reading_progress: {
@@ -98,6 +103,12 @@ async function createDatabase(): Promise<ZenoDatabase> {
           const { last_word_index, ...rest } = oldDoc;
           void last_word_index;
           return { ...rest, section_index: 0, block_index_in_section: lastWordIndex };
+        },
+        2: (doc) => {
+          // v1→v2: removed reading_time_total (never used, always 0). Passthrough.
+          const { reading_time_total, ...rest } = doc as Record<string, unknown>;
+          void reading_time_total;
+          return rest;
         },
       },
     },

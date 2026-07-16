@@ -55,23 +55,15 @@ function resetPauses() {
 
 function resetAllSettings() {
   if (!confirm("Reset all settings to their defaults?")) return;
-  void settings.update({
-    wpm_default: DEFAULT_USER_SETTINGS.wpm_default,
-    max_words_screen: DEFAULT_USER_SETTINGS.max_words_screen,
-    min_words_screen: DEFAULT_USER_SETTINGS.min_words_screen,
-    theme: DEFAULT_USER_SETTINGS.theme,
-    pause_multipliers: { ...DEFAULT_PAUSE_MULTIPLIERS },
-    font_size: DEFAULT_USER_SETTINGS.font_size,
-    font_family: DEFAULT_USER_SETTINGS.font_family,
-    split_on_sentence_end: DEFAULT_USER_SETTINGS.split_on_sentence_end,
-    show_block_counter: DEFAULT_USER_SETTINGS.show_block_counter,
-  });
+  const { id, ...defaults } = DEFAULT_USER_SETTINGS;
+  void id;
+  void settings.update(defaults);
 }
 
 async function resetAppData() {
   if (!confirm("Delete ALL app data (settings, documents, progress)? This cannot be undone.")) return;
   await resetDatabase();
-  documentsStore.documents = [];
+  documentsStore.clearAll();
   documentsStore.setCurrent(null);
   progressStore.clearProgress();
   // Reload to ensure all stores re-initialize from the fresh database.

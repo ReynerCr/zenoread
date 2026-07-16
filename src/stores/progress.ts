@@ -88,7 +88,6 @@ export const useProgressStore = defineStore("progress", () => {
           section_index: sectionIndex,
           block_index_in_section: clampedBlock,
           last_read_date: now,
-          reading_time_total: 0,
           completion_percentage: completion,
         };
         await db.reading_progress.insert(newProgress);

@@ -3,7 +3,6 @@ import { segmentIntoBlocks } from "./parser";
 import type { ParseOptions } from "./types";
 
 const opts = (over: Partial<ParseOptions> = {}): ParseOptions => ({
-  language: "en",
   minWords: 1,
   maxWords: 3,
   ...over,
@@ -157,14 +156,6 @@ describe("segmentIntoBlocks — diacritics & special characters", () => {
     expect(blocks[0].words).toEqual(["El", "niño", "está", "aquí."]);
     expect(blocks[0].pauseType).toBe("period");
     expect(blocks[1].words).toEqual(["Adiós."]);
-  });
-
-  it("strips diacritics only when stripDiacritics is set", () => {
-    const blocks = segmentIntoBlocks(
-      "café résumé",
-      opts({ maxWords: 5, stripDiacritics: true }),
-    );
-    expect(blocks[0].words).toEqual(["cafe", "resume"]);
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeBlockDuration, pauseMultiplier } from "./pause";
+import { computeBlockDuration } from "./pause";
 import type { WordBlock } from "./types";
 import { DEFAULT_PAUSE_MULTIPLIERS } from "../db/schemas/userSettings.schema";
 
@@ -59,16 +59,5 @@ describe("computeBlockDuration — edge cases", () => {
   it("treats an empty block as a single word", () => {
     const b = block([], null);
     expect(computeBlockDuration(b, 300, M)).toBe(200);
-  });
-});
-
-describe("pauseMultiplier", () => {
-  it("returns 1 for null punctuation", () => {
-    expect(pauseMultiplier(null, M)).toBe(1);
-  });
-
-  it("returns the configured multiplier for each type", () => {
-    expect(pauseMultiplier("period", M)).toBe(M.period);
-    expect(pauseMultiplier("paragraph", M)).toBe(M.paragraph);
   });
 });

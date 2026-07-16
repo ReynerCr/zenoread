@@ -1,11 +1,11 @@
 import type { RxJsonSchema } from "rxdb";
 
 /**
- * Supported document source formats. Only `txt` is implemented in the MVP;
- * the field exists so the format-extensible loader (PDF/EPUB/...) can be added
- * later without a schema migration.
+ * Supported document source formats. `txt` and `pdf` are implemented; `epub`
+ * is reserved so the format-extensible loader can be added later without a
+ * schema migration.
  */
-export type FileType = "txt" | "pdf" | "epub" | "md";
+export type FileType = "txt" | "pdf" | "epub";
 
 export interface DocumentDocType {
   id: string;
@@ -25,7 +25,7 @@ export interface DocumentDocType {
 
 export const documentsSchema: RxJsonSchema<DocumentDocType> = {
   title: "documents schema",
-  version: 2,
+  version: 3,
   primaryKey: "id",
   type: "object",
   properties: {
@@ -35,7 +35,7 @@ export const documentsSchema: RxJsonSchema<DocumentDocType> = {
     file_path: { type: "string", maxLength: 4096 },
     created_date: { type: "string", maxLength: 32 },
     modified_date: { type: "string", maxLength: 32 },
-    file_type: { type: "string", enum: ["txt", "pdf", "epub", "md"] },
+    file_type: { type: "string", enum: ["txt", "pdf", "epub"] },
     language: { type: "string", maxLength: 35 },
   },
   required: [

@@ -19,10 +19,6 @@ class ParserRegistry {
   getParser(fileType: FileType): DocumentParser | null {
     return this.parsers.get(fileType) ?? null;
   }
-
-  isSupported(fileType: FileType): boolean {
-    return this.parsers.has(fileType);
-  }
 }
 
 export const parserRegistry = new ParserRegistry();
