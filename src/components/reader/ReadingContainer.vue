@@ -20,8 +20,6 @@ const {
   isDragOver,
   openFile,
   openFromLibrary,
-  saveCurrentProgress,
-  stopAndSave,
   currentSegmentConfig,
 } = useDocumentLoader(playback);
 
@@ -29,7 +27,7 @@ useKeyboardShortcuts({
   onTogglePlayPause: togglePlayPause,
   onNext: () => playback.next(),
   onPrev: () => playback.prev(),
-  onStop: stopAndSave,
+  onStop: () => playback.pause(),
 });
 
 const wordStyle = computed(() => ({
@@ -88,7 +86,6 @@ const emptyPageLabel = computed(() => `Page ${currentPage.value} has no text con
 function togglePlayPause() {
   if (isPlaying.value) {
     playback.pause();
-    saveCurrentProgress();
   } else {
     playback.play();
   }
@@ -204,7 +201,7 @@ defineExpose({ openFromLibrary });
         :current-page="currentPage"
         :total-pages="totalPages"
         @toggle-play-pause="togglePlayPause"
-        @stop="stopAndSave"
+        @stop="playback.pause()"
         @next-block="playback.next()"
         @prev-block="playback.prev()"
         @prev-page="prevPage"

@@ -122,6 +122,9 @@ export function useDocumentLoader(playback: ReturnType<typeof usePlayback>) {
     isLoading,
   );
 
+  // Pause is the shared freeze-and-save path for both Stop and Pause.
+  playback.registerPauseSave(saveCurrentProgress);
+
   function saveCurrentProgress() {
     if (!savedDocId.value) return;
     saveState.value = "saving";
@@ -139,11 +142,6 @@ export function useDocumentLoader(playback: ReturnType<typeof usePlayback>) {
       .catch(() => {
         saveState.value = "idle";
       });
-  }
-
-  function stopAndSave() {
-    saveCurrentProgress();
-    playback.stop();
   }
 
   function handleBeforeUnload() {
@@ -174,7 +172,6 @@ export function useDocumentLoader(playback: ReturnType<typeof usePlayback>) {
     openFromLibrary,
     openParsedDocument,
     saveCurrentProgress,
-    stopAndSave,
     currentSegmentConfig,
   };
 }

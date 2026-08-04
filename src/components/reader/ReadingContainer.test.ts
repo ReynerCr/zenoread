@@ -191,16 +191,27 @@ describe("ReadingContainer — playback controls", () => {
     expect(resumeBtn.text()).toBe("Resume");
   });
 
-  it("Stop button resets to the first block", async () => {
+  it("Stop button holds the current block and pauses like Resume", async () => {
     const { wrapper } = await mountReader();
+    // Play first so Stop has a playing state to pause (unlike the old reset).
+    await wrapper.find('button[aria-label="Play"]').trigger("click");
+    await flushPromises();
     const nextBtn = wrapper.find('button[aria-label="Next block"]');
     await nextBtn.trigger("click");
     await nextBtn.trigger("click");
     await flushPromises();
-    expect(wrapper.find('[data-testid="block-counter"]').text()).not.toBe("block 1 / " + wrapper.find('[data-testid="block-counter"]').text().split(" / ")[1]);
+    const counterBefore = wrapper.find('[data-testid="block-counter"]').text();
+    expect(counterBefore).toMatch(/^block 3 \/ \d+$/);
+
     await wrapper.find('button[aria-label="Stop"]').trigger("click");
     await flushPromises();
-    expect(wrapper.find('[data-testid="block-counter"]').text()).toMatch(/^block 1 \/ \d+$/);
+
+    // Stop does not reset: the block position is kept.
+    expect(wrapper.find('[data-testid="block-counter"]').text()).toBe(counterBefore);
+    // It pauses: the toggle shows Resume, ready to continue from the same spot.
+    const resumeBtn = wrapper.find('button[aria-label="Play"]');
+    expect(resumeBtn.exists()).toBe(true);
+    expect(resumeBtn.text()).toBe("Resume");
   });
 });
 
@@ -308,6 +319,23 @@ describe("ReadingContainer — cross-section auto-advance", () => {
     await vi.advanceTimersByTimeAsync(800);
 
     expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("2");
+  });
+
+  it("keeps the last block when playback reaches the end of the last section", async () => {
+    const { wrapper } = await mountWithPdfDoc();
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="Play"]').trigger("click");
+    await flushPromises();
+
+    // Each page: block0 = 200ms, block1 ("here.", period x2.5) = 500ms, so a
+    // page is ~700ms. Play through all three pages and past the final block.
+    await vi.advanceTimersByTimeAsync(3000);
+
+    expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("3");
+    expect(wrapper.find('[data-testid="block-counter"]').text()).toBe("block 2 / 2");
+    // Playback stopped at end-of-content (not paused/playing).
+    expect(wrapper.find('button[aria-label="Pause"]').exists()).toBe(false);
   });
 
   it("wraps prev() from first block of a section to the last block of the previous section", async () => {

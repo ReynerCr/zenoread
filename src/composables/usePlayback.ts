@@ -93,7 +93,7 @@ export function usePlayback() {
     currentSection.value = 0;
     sectionCount.value = 0;
     blocks.value = [];
-    controller.value?.stop();
+    controller.value?.halt();
   }
 
   async function loadSection(sectionIndex: number, startIndex = 0): Promise<void> {
@@ -151,7 +151,7 @@ export function usePlayback() {
   async function handleSectionEnd(): Promise<void> {
     const next = currentSection.value + 1;
     if (next >= sectionCount.value) {
-      controller.value?.stop();
+      controller.value?.stopAtEnd();
       return;
     }
 
@@ -194,9 +194,20 @@ export function usePlayback() {
     void loadSectionBlocks(next);
   }
 
+  const pauseSaveHandler = shallowRef<(() => void) | null>(null);
+
   const play = () => controller.value?.play();
-  const pause = () => controller.value?.pause();
-  const stop = () => controller.value?.stop();
+
+  /** Freezes playback and persists progress. Used by both Stop and Pause. */
+  const pause = () => {
+    controller.value?.pause();
+    pauseSaveHandler.value?.();
+  };
+
+  /** Registers the progress-save callback driven by pause(). */
+  function registerPauseSave(handler: (() => void) | null) {
+    pauseSaveHandler.value = handler;
+  }
 
   function next(): void {
     controller.value?.next();
@@ -212,7 +223,7 @@ export function usePlayback() {
   }
 
   onUnmounted(() => {
-    controller.value?.stop();
+    controller.value?.halt();
     if (streamer.value) void streamer.value.close();
   });
 
@@ -231,7 +242,7 @@ export function usePlayback() {
     updateSettings,
     play,
     pause,
-    stop,
+    registerPauseSave,
     next,
     prev,
   };
