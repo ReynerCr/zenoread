@@ -63,12 +63,13 @@ export class PlaybackController {
   }
 
   /** Loads (or replaces) the block list and settings, resetting to stop. */
-  load(config: PlaybackConfig): void {
+  load(config: PlaybackConfig, initialState: PlaybackState = "stop"): void {
     this.halt();
     this.blocks = config.blocks;
     this.wpm = config.wpm;
     this.multipliers = config.multipliers;
     this.index = 0;
+    if (initialState === "pause") this.setState("pause");
   }
 
   /**

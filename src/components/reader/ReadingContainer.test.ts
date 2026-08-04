@@ -213,6 +213,18 @@ describe("ReadingContainer — playback controls", () => {
     expect(resumeBtn.exists()).toBe(true);
     expect(resumeBtn.text()).toBe("Resume");
   });
+
+  it("Next block while playing pauses and does not auto-advance", async () => {
+    const { wrapper } = await mountReader();
+    await wrapper.find('button[aria-label="Play"]').trigger("click");
+    await flushPromises();
+    await wrapper.find('button[aria-label="Next block"]').trigger("click");
+    await flushPromises();
+    // Paused at block 2; advancing time must not auto-advance to block 3.
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(wrapper.find('button[aria-label="Play"]').text()).toBe("Resume");
+    expect(wrapper.find('[data-testid="block-counter"]').text()).toMatch(/^block 2 \/ \d+$/);
+  });
 });
 
 describe("ReadingContainer — block navigation", () => {
@@ -318,6 +330,23 @@ describe("ReadingContainer — cross-section auto-advance", () => {
     // Advance 800ms: sectionEnd has fired, we're on page 2, block 0.
     await vi.advanceTimersByTimeAsync(800);
 
+    expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("2");
+  });
+
+  it("Next page while playing pauses at the new page", async () => {
+    const { wrapper } = await mountWithPdfDoc();
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="Play"]').trigger("click");
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="Next page"]').trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("2");
+    expect(wrapper.find('button[aria-label="Play"]').text()).toBe("Resume");
+    // Paused: the page does not auto-advance further while time passes.
+    await vi.advanceTimersByTimeAsync(1000);
     expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("2");
   });
 

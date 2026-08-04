@@ -96,7 +96,7 @@ export function usePlayback() {
     controller.value?.halt();
   }
 
-  async function loadSection(sectionIndex: number, startIndex = 0): Promise<void> {
+  async function loadSection(sectionIndex: number, startIndex = 0, initialState: PlaybackState = "stop"): Promise<void> {
     const s = streamer.value;
     if (!s) return;
     if (sectionIndex < 0 || sectionIndex >= s.sectionCount) return;
@@ -105,7 +105,10 @@ export function usePlayback() {
 
     const sectionBlocks = await loadSectionBlocks(sectionIndex);
     blocks.value = sectionBlocks;
-    controller.value.load({ blocks: sectionBlocks, wpm: wpm.value, multipliers: multipliers.value });
+    controller.value.load(
+      { blocks: sectionBlocks, wpm: wpm.value, multipliers: multipliers.value },
+      initialState,
+    );
     state.value = controller.value.state;
     currentIndex.value = controller.value.currentIndex;
     currentBlock.value = controller.value.currentBlock;
@@ -123,7 +126,10 @@ export function usePlayback() {
   }
 
   function seekToSection(sectionIndex: number): void {
-    void loadSection(sectionIndex);
+    // User-initiated page jump interrupts playback (pause) but a stopped reader
+    // stays stopped so the button keeps reading "Play".
+    const targetState: PlaybackState = state.value === "stop" ? "stop" : "pause";
+    void loadSection(sectionIndex, 0, targetState);
   }
 
   function updateSettings(
@@ -209,15 +215,23 @@ export function usePlayback() {
     pauseSaveHandler.value = handler;
   }
 
+  /** Interrupts auto-advance when the user navigates while playing. */
+  function pauseIfPlaying(): void {
+    if (state.value === "play") controller.value?.pause();
+  }
+
   function next(): void {
+    pauseIfPlaying();
     controller.value?.next();
   }
 
   function prev(): void {
     if (!controller.value) return;
     if (controller.value.currentIndex <= 0 && currentSection.value > 0) {
-      void loadSection(currentSection.value - 1, -1);
+      const targetState: PlaybackState = state.value === "stop" ? "stop" : "pause";
+      void loadSection(currentSection.value - 1, -1, targetState);
     } else {
+      pauseIfPlaying();
       controller.value.prev();
     }
   }
