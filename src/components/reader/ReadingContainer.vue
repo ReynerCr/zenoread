@@ -1,26 +1,29 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch, onMounted, onBeforeUnmount } from "vue";
+import { computed, watch } from "vue";
 import { storeToRefs } from "pinia";
-import { useSettingsStore } from "../../stores/settings";
-import { usePlayback, type SegmentConfig } from "../../composables/usePlayback";
-import { useKeyboardShortcuts } from "../../composables/useKeyboardShortcuts";
-import { useDragDrop } from "../../composables/useDragDrop";
-import { loadDocumentFromDialog, loadDocumentFromPath } from "../../documents/fileLoader";
-import { TxtStreamer } from "../../documents/txtStreamer";
-import type { ParsedDocument } from "../../documents/types";
 import { useDocumentsStore } from "../../stores/documents";
-import { useProgressStore } from "../../stores/progress";
-import { isTauri } from "../../utils/platform";
+import { useSettingsStore } from "../../stores/settings";
+import { useDocumentLoader } from "../../composables/useDocumentLoader";
+import { useKeyboardShortcuts } from "../../composables/useKeyboardShortcuts";
+import { usePlayback } from "../../composables/usePlayback";
+import PlaybackControls from "./PlaybackControls.vue";
 
 const settings = useSettingsStore();
 const playback = usePlayback();
 const documentsStore = useDocumentsStore();
 const { isLoading } = storeToRefs(documentsStore);
-const progressStore = useProgressStore();
-const loadedDocument = shallowRef<ParsedDocument | null>(null);
-const savedDocId = ref<string | null>(null);
-const saveState = ref<"idle" | "saving" | "saved">("idle");
-const dropZoneRef = ref<HTMLElement | null>(null);
+
+const {
+  loadedDocument,
+  saveState,
+  dropZoneRef,
+  isDragOver,
+  openFile,
+  openFromLibrary,
+  saveCurrentProgress,
+  stopAndSave,
+  currentSegmentConfig,
+} = useDocumentLoader(playback);
 
 useKeyboardShortcuts({
   onTogglePlayPause: togglePlayPause,
@@ -28,19 +31,6 @@ useKeyboardShortcuts({
   onPrev: () => playback.prev(),
   onStop: stopAndSave,
 });
-
-const SAMPLE_TEXT =
-  "Welcome to ZenoRead. This is a speed-reading app. " +
-  "It uses RSVP to show words quickly. " +
-  "Press play to begin, space to pause, and arrows to skip.";
-
-function currentSegmentConfig(): SegmentConfig {
-  return {
-    minWords: settings.settings.min_words_screen,
-    maxWords: settings.settings.max_words_screen,
-    splitOnSentenceEnd: settings.settings.split_on_sentence_end,
-  };
-}
 
 const wordStyle = computed(() => ({
   fontSize: `${settings.settings.font_size}px`,
@@ -95,86 +85,6 @@ const hasDocument = computed(() => loadedDocument.value !== null);
 const isEmptyPage = computed(() => playback.isEmptySection.value && hasSections.value);
 const emptyPageLabel = computed(() => `Page ${currentPage.value} has no text content`);
 
-function loadSample() {
-  loadedDocument.value = null;
-  savedDocId.value = null;
-  progressStore.clearProgress();
-  void playback.attachStreamer(
-    new TxtStreamer(SAMPLE_TEXT),
-    currentSegmentConfig(),
-    settings.settings.wpm_default,
-    settings.settings.pause_multipliers,
-  );
-}
-
-async function openFile() {
-  if (isLoading.value) return;
-  documentsStore.setLoading(true);
-  try {
-    const doc = await loadDocumentFromDialog();
-    if (!doc) return;
-    await openParsedDocument(doc);
-  } finally {
-    documentsStore.setLoading(false);
-  }
-}
-
-async function openFromLibrary(docId: string) {
-  if (isLoading.value) return;
-  documentsStore.setLoading(true);
-  try {
-    const meta = await documentsStore.getDocument(docId);
-    if (!meta) return;
-
-    if (isTauri()) {
-      const doc = await loadDocumentFromPath(meta.file_path, meta.file_type, meta.language);
-      if (!doc) return;
-      await openParsedDocument(doc);
-    } else {
-      await openFile();
-    }
-  } finally {
-    documentsStore.setLoading(false);
-  }
-}
-
-async function openParsedDocument(doc: ParsedDocument) {
-  loadedDocument.value = doc;
-  const saved = await documentsStore.saveDocument(doc);
-  savedDocId.value = saved?.id ?? null;
-
-  let startSection = 0;
-  let startIndex = 0;
-  if (savedDocId.value) {
-    const pos = await progressStore.loadProgress(savedDocId.value);
-    startSection = pos.sectionIndex;
-    startIndex = pos.blockIndex;
-  }
-
-  await playback.attachStreamer(
-    doc.streamer,
-    currentSegmentConfig(),
-    settings.settings.wpm_default,
-    settings.settings.pause_multipliers,
-    startSection,
-    startIndex,
-  );
-}
-
-const { isDragOver } = useDragDrop(
-  dropZoneRef,
-  async (doc) => {
-    if (isLoading.value) return;
-    documentsStore.setLoading(true);
-    try {
-      await openParsedDocument(doc);
-    } finally {
-      documentsStore.setLoading(false);
-    }
-  },
-  isLoading,
-);
-
 function togglePlayPause() {
   if (isPlaying.value) {
     playback.pause();
@@ -182,30 +92,6 @@ function togglePlayPause() {
   } else {
     playback.play();
   }
-}
-
-function saveCurrentProgress() {
-  if (!savedDocId.value) return;
-  saveState.value = "saving";
-  void progressStore
-    .saveProgress(
-      savedDocId.value,
-      playback.currentSection.value,
-      playback.currentIndex.value,
-      playback.sectionCount.value,
-      playback.totalBlocks.value,
-    )
-    .then(() => {
-      saveState.value = "saved";
-    })
-    .catch(() => {
-      saveState.value = "idle";
-    });
-}
-
-function stopAndSave() {
-  saveCurrentProgress();
-  playback.stop();
 }
 
 function prevPage() {
@@ -216,18 +102,11 @@ function nextPage() {
   playback.seekToSection(playback.currentSection.value + 1);
 }
 
-function onPageInput(event: Event) {
-  const value = parseInt((event.target as HTMLInputElement).value, 10);
-  if (!isNaN(value) && value >= 1 && value <= totalPages.value) {
-    playback.seekToSection(value - 1);
+function onPageInput(value: string) {
+  const parsed = parseInt(value, 10);
+  if (!isNaN(parsed) && parsed >= 1 && parsed <= totalPages.value) {
+    playback.seekToSection(parsed - 1);
   }
-}
-
-function handleBeforeUnload() {
-  if (savedDocId.value && playback.state.value !== "stop") {
-    saveCurrentProgress();
-  }
-  void playback.detachStreamer();
 }
 
 watch(
@@ -246,16 +125,6 @@ watch(
     );
   },
 );
-
-onMounted(() => {
-  loadSample();
-  window.addEventListener("beforeunload", handleBeforeUnload);
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("beforeunload", handleBeforeUnload);
-  void playback.detachStreamer();
-});
 
 defineExpose({ openFromLibrary });
 </script>
@@ -328,66 +197,20 @@ defineExpose({ openFromLibrary });
         {{ blockCounterLabel }}
       </span>
 
-      <!-- Page navigation (PDF only) -->
-      <div v-if="hasSections" class="flex items-center gap-1" data-testid="page-nav">
-        <button
-          class="rounded-md border border-zeno-border px-2 py-1 text-xs text-zeno-text hover:bg-zeno-surface disabled:opacity-30 disabled:cursor-not-allowed"
-          aria-label="Previous page"
-          :disabled="currentPage <= 1"
-          @click="prevPage"
-        >
-          ◀
-        </button>
-        <input
-          type="number"
-          :min="1"
-          :max="totalPages"
-          :value="currentPage"
-          class="w-12 rounded-md border border-zeno-border bg-zeno-bg px-2 py-1 text-center text-xs text-zeno-text tabular-nums"
-          aria-label="Page number"
-          @change="onPageInput"
-        />
-        <span class="text-xs text-zeno-muted tabular-nums">/ {{ totalPages }}</span>
-        <button
-          class="rounded-md border border-zeno-border px-2 py-1 text-xs text-zeno-text hover:bg-zeno-surface disabled:opacity-30 disabled:cursor-not-allowed"
-          aria-label="Next page"
-          :disabled="currentPage >= totalPages"
-          @click="nextPage"
-        >
-          ▶
-        </button>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <button
-          class="rounded-md border border-zeno-border px-3 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface"
-          aria-label="Previous block"
-          @click="playback.prev()"
-        >
-          ◀
-        </button>
-        <button
-          class="rounded-md border border-zeno-border px-4 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface"
-          :aria-label="isPlaying ? 'Pause' : 'Play'"
-          @click="togglePlayPause"
-        >
-          {{ isPlaying ? "Pause" : isPaused ? "Resume" : "Play" }}
-        </button>
-        <button
-          class="rounded-md border border-zeno-border px-3 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface"
-          aria-label="Stop"
-          @click="stopAndSave"
-        >
-          Stop
-        </button>
-        <button
-          class="rounded-md border border-zeno-border px-3 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface"
-          aria-label="Next block"
-          @click="playback.next()"
-        >
-          ▶
-        </button>
-      </div>
+      <PlaybackControls
+        :is-playing="isPlaying"
+        :is-paused="isPaused"
+        :has-sections="hasSections"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        @toggle-play-pause="togglePlayPause"
+        @stop="stopAndSave"
+        @next-block="playback.next()"
+        @prev-block="playback.prev()"
+        @prev-page="prevPage"
+        @next-page="nextPage"
+        @page-input="onPageInput"
+      />
     </div>
   </section>
 </template>
