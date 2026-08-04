@@ -217,13 +217,13 @@ describe("PlaybackController — stopAtEnd", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it("holds the last block instead of rewinding to the first", () => {
+  it("holds the last block in the finished state", () => {
     const { ctrl, indices } = harness(blocks(3));
     ctrl.play();
     ctrl.next();
     ctrl.next(); // index 2 (last)
     ctrl.stopAtEnd();
-    expect(ctrl.state).toBe("stop");
+    expect(ctrl.state).toBe("finished");
     expect(ctrl.currentIndex).toBe(2);
     expect(indices[indices.length - 1]).toBe(2);
   });
@@ -231,6 +231,38 @@ describe("PlaybackController — stopAtEnd", () => {
   it("stays at index 0 for a single-block section", () => {
     const { ctrl } = harness(blocks(1));
     ctrl.stopAtEnd();
+    expect(ctrl.state).toBe("finished");
+    expect(ctrl.currentIndex).toBe(0);
+  });
+
+  it("play() from finished is a no-op", () => {
+    const { ctrl } = harness(blocks(3));
+    ctrl.stopAtEnd();
+    ctrl.play();
+    expect(ctrl.state).toBe("finished");
+    expect(ctrl.currentIndex).toBe(2);
+  });
+
+  it("prev() from finished returns to plain stop", () => {
+    const { ctrl } = harness(blocks(3));
+    ctrl.stopAtEnd();
+    ctrl.prev();
+    expect(ctrl.state).toBe("stop");
+    expect(ctrl.currentIndex).toBe(1);
+  });
+
+  it("seek() from finished returns to plain stop", () => {
+    const { ctrl } = harness(blocks(5));
+    ctrl.stopAtEnd();
+    ctrl.seek(2);
+    expect(ctrl.state).toBe("stop");
+    expect(ctrl.currentIndex).toBe(2);
+  });
+
+  it("load() clears the finished state", () => {
+    const { ctrl } = harness(blocks(2));
+    ctrl.stopAtEnd();
+    ctrl.load({ blocks: blocks(2), wpm: 300, multipliers: DEFAULT_PAUSE_MULTIPLIERS });
     expect(ctrl.state).toBe("stop");
     expect(ctrl.currentIndex).toBe(0);
   });

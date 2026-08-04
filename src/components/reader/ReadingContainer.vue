@@ -91,11 +91,13 @@ const completionLabel = computed(() => {
 
 const isPlaying = computed(() => playback.state.value === "play");
 const isPaused = computed(() => playback.state.value === "pause");
+const isFinished = computed(() => playback.state.value === "finished");
 const hasDocument = computed(() => loadedDocument.value !== null);
 const isEmptyPage = computed(() => playback.isEmptySection.value && hasSections.value);
 const emptyPageLabel = computed(() => `Page ${currentPage.value} has no text content`);
 
 function togglePlayPause() {
+  if (isFinished.value) return;
   if (isPlaying.value) {
     playback.pause();
   } else {
@@ -209,6 +211,7 @@ defineExpose({ openFromLibrary });
       <PlaybackControls
         :is-playing="isPlaying"
         :is-paused="isPaused"
+        :is-finished="isFinished"
         :has-sections="hasSections"
         :current-page="currentPage"
         :total-pages="totalPages"
