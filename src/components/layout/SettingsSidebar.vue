@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { confirm as tauriConfirm } from "@tauri-apps/plugin-dialog";
 import { useSettingsStore } from "../../stores/settings";
 import { useDocumentsStore } from "../../stores/documents";
 import { useProgressStore } from "../../stores/progress";
@@ -10,6 +11,7 @@ import {
   type PauseMultipliers,
 } from "../../db/schemas/userSettings.schema";
 import SliderInput from "../ui/SliderInput.vue";
+import { isTauri } from "../../utils/platform";
 
 defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -53,15 +55,22 @@ function resetPauses() {
   });
 }
 
-function resetAllSettings() {
-  if (!confirm("Reset all settings to their defaults?")) return;
+function confirmDialog(message: string): Promise<boolean> {
+  if (isTauri()) {
+    return tauriConfirm(message);
+  }
+  return Promise.resolve(window.confirm(message));
+}
+
+async function resetAllSettings() {
+  if (!(await confirmDialog("Reset all settings to their defaults?"))) return;
   const { id, ...defaults } = DEFAULT_USER_SETTINGS;
   void id;
   void settings.update(defaults);
 }
 
 async function resetAppData() {
-  if (!confirm("Delete ALL app data (settings, documents, progress)? This cannot be undone.")) return;
+  if (!(await confirmDialog("Delete ALL app data (settings, documents, progress)? This cannot be undone."))) return;
   await resetDatabase();
   documentsStore.clearAll();
   documentsStore.setCurrent(null);
