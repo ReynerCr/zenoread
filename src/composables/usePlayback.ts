@@ -86,17 +86,21 @@ export function usePlayback() {
   }
 
   async function detachStreamer(): Promise<void> {
-    if (streamer.value) await streamer.value.close();
+    const old = streamer.value;
     streamer.value = null;
     segmentConfig.value = null;
     cache.clear();
     currentSection.value = 0;
     sectionCount.value = 0;
     blocks.value = [];
-    controller.value?.stop();
+    currentBlock.value = null;
+    currentIndex.value = 0;
+    totalBlocks.value = 0;
+    controller.value?.halt();
+    if (old) await old.close();
   }
 
-  async function loadSection(sectionIndex: number, startIndex = 0): Promise<void> {
+  async function loadSection(sectionIndex: number, startIndex = 0, initialState: PlaybackState = "stop"): Promise<void> {
     const s = streamer.value;
     if (!s) return;
     if (sectionIndex < 0 || sectionIndex >= s.sectionCount) return;
@@ -105,7 +109,10 @@ export function usePlayback() {
 
     const sectionBlocks = await loadSectionBlocks(sectionIndex);
     blocks.value = sectionBlocks;
-    controller.value.load({ blocks: sectionBlocks, wpm: wpm.value, multipliers: multipliers.value });
+    controller.value.load(
+      { blocks: sectionBlocks, wpm: wpm.value, multipliers: multipliers.value },
+      initialState,
+    );
     state.value = controller.value.state;
     currentIndex.value = controller.value.currentIndex;
     currentBlock.value = controller.value.currentBlock;
@@ -123,7 +130,10 @@ export function usePlayback() {
   }
 
   function seekToSection(sectionIndex: number): void {
-    void loadSection(sectionIndex);
+    // User-initiated page jump interrupts playback (pause) but a stopped reader
+    // stays stopped so the button keeps reading "Play".
+    const targetState: PlaybackState = state.value === "stop" ? "stop" : "pause";
+    void loadSection(sectionIndex, 0, targetState);
   }
 
   function updateSettings(
@@ -151,7 +161,7 @@ export function usePlayback() {
   async function handleSectionEnd(): Promise<void> {
     const next = currentSection.value + 1;
     if (next >= sectionCount.value) {
-      controller.value?.stop();
+      controller.value?.stopAtEnd();
       return;
     }
 
@@ -194,25 +204,44 @@ export function usePlayback() {
     void loadSectionBlocks(next);
   }
 
+  const pauseSaveHandler = shallowRef<(() => void) | null>(null);
+
   const play = () => controller.value?.play();
-  const pause = () => controller.value?.pause();
-  const stop = () => controller.value?.stop();
+
+  /** Freezes playback and persists progress. Used by both Stop and Pause. */
+  const pause = () => {
+    controller.value?.pause();
+    pauseSaveHandler.value?.();
+  };
+
+  /** Registers the progress-save callback driven by pause(). */
+  function registerPauseSave(handler: (() => void) | null) {
+    pauseSaveHandler.value = handler;
+  }
+
+  /** Interrupts auto-advance when the user navigates while playing. */
+  function pauseIfPlaying(): void {
+    if (state.value === "play") controller.value?.pause();
+  }
 
   function next(): void {
+    pauseIfPlaying();
     controller.value?.next();
   }
 
   function prev(): void {
     if (!controller.value) return;
     if (controller.value.currentIndex <= 0 && currentSection.value > 0) {
-      void loadSection(currentSection.value - 1, -1);
+      const targetState: PlaybackState = state.value === "stop" ? "stop" : "pause";
+      void loadSection(currentSection.value - 1, -1, targetState);
     } else {
+      pauseIfPlaying();
       controller.value.prev();
     }
   }
 
   onUnmounted(() => {
-    controller.value?.stop();
+    controller.value?.halt();
     if (streamer.value) void streamer.value.close();
   });
 
@@ -231,7 +260,7 @@ export function usePlayback() {
     updateSettings,
     play,
     pause,
-    stop,
+    registerPauseSave,
     next,
     prev,
   };

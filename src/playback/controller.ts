@@ -63,12 +63,13 @@ export class PlaybackController {
   }
 
   /** Loads (or replaces) the block list and settings, resetting to stop. */
-  load(config: PlaybackConfig): void {
-    this.stop();
+  load(config: PlaybackConfig, initialState: PlaybackState = "stop"): void {
+    this.halt();
     this.blocks = config.blocks;
     this.wpm = config.wpm;
     this.multipliers = config.multipliers;
     this.index = 0;
+    if (initialState === "pause") this.setState("pause");
   }
 
   /**
@@ -110,10 +111,18 @@ export class PlaybackController {
     this.setState("pause");
   }
 
-  stop(): void {
+  /** Cancels playback and returns to the stop state without resetting position. */
+  halt(): void {
     this.clearTimer();
-    this.index = 0;
     this.setState("stop");
+  }
+
+  /** Ends playback at the last block (terminal end-of-content). */
+  stopAtEnd(): void {
+    this.halt();
+    if (this.blocks.length > 0) {
+      this.index = this.blocks.length - 1;
+    }
     this.emitBlock();
   }
 

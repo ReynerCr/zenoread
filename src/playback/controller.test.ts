@@ -36,16 +36,24 @@ describe("PlaybackController — state transitions", () => {
     expect(ctrl.currentIndex).toBe(0);
   });
 
-  it("play → pause → stop cycle", () => {
+  it("play → pause → halt cycle", () => {
     const { ctrl, states } = harness(blocks(3));
     ctrl.play();
     expect(ctrl.state).toBe("play");
     ctrl.pause();
     expect(ctrl.state).toBe("pause");
-    ctrl.stop();
+    ctrl.halt();
     expect(ctrl.state).toBe("stop");
-    expect(ctrl.currentIndex).toBe(0);
     expect(states).toEqual(["play", "pause", "stop"]);
+  });
+
+  it("halt stops without changing position", () => {
+    const { ctrl } = harness(blocks(3));
+    ctrl.next(); // index 1
+    ctrl.play();
+    ctrl.halt();
+    expect(ctrl.state).toBe("stop");
+    expect(ctrl.currentIndex).toBe(1);
   });
 
   it("pause is a no-op when not playing", () => {
@@ -202,6 +210,29 @@ describe("PlaybackController — restart and edge cases", () => {
     expect(ctrl.state).toBe("stop");
     expect(ctrl.currentIndex).toBe(0);
     expect(ctrl.totalBlocks).toBe(5);
+  });
+});
+
+describe("PlaybackController — stopAtEnd", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("holds the last block instead of rewinding to the first", () => {
+    const { ctrl, indices } = harness(blocks(3));
+    ctrl.play();
+    ctrl.next();
+    ctrl.next(); // index 2 (last)
+    ctrl.stopAtEnd();
+    expect(ctrl.state).toBe("stop");
+    expect(ctrl.currentIndex).toBe(2);
+    expect(indices[indices.length - 1]).toBe(2);
+  });
+
+  it("stays at index 0 for a single-block section", () => {
+    const { ctrl } = harness(blocks(1));
+    ctrl.stopAtEnd();
+    expect(ctrl.state).toBe("stop");
+    expect(ctrl.currentIndex).toBe(0);
   });
 });
 
