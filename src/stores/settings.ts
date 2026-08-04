@@ -58,10 +58,13 @@ export const useSettingsStore = defineStore("settings", () => {
       const doc = await db.user_settings
         .findOne({ selector: { id: SETTINGS_SINGLETON_ID } })
         .exec();
+      // Send plain JSON: RxDB's dev-mode check structured-clones the write row
+      // and rejects reactive proxies or dev-mode deep-frozen refs (DOC24).
+      const plainSettings: UserSettingsDocType = JSON.parse(JSON.stringify(settings.value));
       if (doc) {
-        await doc.patch(settings.value);
+        await doc.patch(plainSettings);
       } else {
-        await db.user_settings.insert({ ...settings.value });
+        await db.user_settings.insert({ ...plainSettings });
       }
     } catch (error) {
       reportError(error, "Could not save your settings.", { context: "settings.flushSave" });
