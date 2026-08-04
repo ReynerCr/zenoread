@@ -7,6 +7,7 @@ import { useDocumentLoader } from "../../composables/useDocumentLoader";
 import { useKeyboardShortcuts } from "../../composables/useKeyboardShortcuts";
 import { usePlayback } from "../../composables/usePlayback";
 import PlaybackControls from "./PlaybackControls.vue";
+import { completionPercentage } from "../../utils/progress";
 
 const settings = useSettingsStore();
 const playback = usePlayback();
@@ -60,21 +61,32 @@ const progressLabel = computed(() => {
   }
   const idx = playback.currentIndex.value;
   const blocks = playback.blocks.value;
+  const suffix = completionLabel.value ? ` · ${completionLabel.value}` : "";
 
   if (hasSections.value) {
     const page = currentPage.value;
     const paragraphInPage = 1 + countParagraphBreaks(blocks, 0, idx);
-    return `Page ${page} · ¶ ${paragraphInPage}`;
+    return `Page ${page} · ¶ ${paragraphInPage}${suffix}`;
   }
 
   const currentParagraph = 1 + countParagraphBreaks(blocks, 0, idx);
   const totalParagraphs = 1 + blocks.filter((b) => b.pauseType === "paragraph").length;
-  return `¶ ${currentParagraph} / ${totalParagraphs}`;
+  return `¶ ${currentParagraph} / ${totalParagraphs}${suffix}`;
 });
 
 const blockCounterLabel = computed(() => {
   if (playback.totalBlocks.value === 0) return "";
   return `block ${playback.currentIndex.value + 1} / ${playback.totalBlocks.value}`;
+});
+
+const completionLabel = computed(() => {
+  if (playback.sectionCount.value <= 0 || playback.totalBlocks.value <= 0) return "";
+  return `${completionPercentage(
+    playback.currentSection.value,
+    playback.currentIndex.value,
+    playback.sectionCount.value,
+    playback.totalBlocks.value,
+  )}%`;
 });
 
 const isPlaying = computed(() => playback.state.value === "play");

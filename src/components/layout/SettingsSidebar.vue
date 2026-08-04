@@ -3,7 +3,6 @@ import { ref } from "vue";
 import { confirm as tauriConfirm } from "@tauri-apps/plugin-dialog";
 import { useSettingsStore } from "../../stores/settings";
 import { useDocumentsStore } from "../../stores/documents";
-import { useProgressStore } from "../../stores/progress";
 import { resetDatabase } from "../../db/database";
 import {
   DEFAULT_PAUSE_MULTIPLIERS,
@@ -18,7 +17,6 @@ const emit = defineEmits<{ (e: "close"): void }>();
 
 const settings = useSettingsStore();
 const documentsStore = useDocumentsStore();
-const progressStore = useProgressStore();
 const advancedOpen = ref(false);
 
 const PAUSE_FIELDS: { key: keyof PauseMultipliers; label: string }[] = [
@@ -74,7 +72,6 @@ async function resetAppData() {
   await resetDatabase();
   documentsStore.clearAll();
   documentsStore.setCurrent(null);
-  progressStore.clearProgress();
   // Reload to ensure all stores re-initialize from the fresh database.
   window.location.reload();
 }

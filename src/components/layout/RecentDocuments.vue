@@ -1,20 +1,39 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useDocumentsStore } from "../../stores/documents";
+import { useProgressStore } from "../../stores/progress";
 import { isTauri } from "../../utils/platform";
 
-defineProps<{ open: boolean }>();
+const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void; (e: "open-doc", docId: string): void }>();
 
 const documentsStore = useDocumentsStore();
+const progressStore = useProgressStore();
 const { isLoading } = storeToRefs(documentsStore);
+
+onMounted(() => {
+  void progressStore.loadAllProgress();
+});
+
+// Refresh completion when the panel opens or the library changes.
+watch(
+  () => [props.open, documentsStore.documents.length],
+  () => {
+    void progressStore.loadAllProgress();
+  },
+);
 
 const sortedDocs = computed(() =>
   [...documentsStore.documents].sort(
     (a, b) => new Date(b.modified_date).getTime() - new Date(a.modified_date).getTime(),
   ),
 );
+
+function completionOf(docId: string): number | null {
+  const value = progressStore.progressByDocId[docId];
+  return value === undefined ? null : value;
+}
 
 function formatRelativeDate(iso: string): string {
   const date = new Date(iso);
@@ -79,7 +98,7 @@ function handleOpenDoc(docId: string) {
           >
             <span class="truncate text-xs font-medium text-zeno-text">{{ doc.title }}</span>
             <span class="text-[10px] text-zeno-muted">
-              {{ doc.section_count > 1 ? `${doc.section_count} pages` : "1 section" }} · {{ formatRelativeDate(doc.modified_date) }}
+              {{ doc.section_count > 1 ? `${doc.section_count} pages` : "1 section" }}<template v-if="completionOf(doc.id) !== null"> · {{ completionOf(doc.id) }}%</template> · {{ formatRelativeDate(doc.modified_date) }}
             </span>
           </button>
         </li>
