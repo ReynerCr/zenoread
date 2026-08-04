@@ -2,6 +2,7 @@
 defineProps<{
   isPlaying: boolean;
   isPaused: boolean;
+  isFinished: boolean;
   hasSections: boolean;
   currentPage: number;
   totalPages: number;
@@ -61,8 +62,9 @@ function onPageInput(event: Event) {
       ◀
     </button>
     <button
-      class="rounded-md border border-zeno-border px-4 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface"
+      class="rounded-md border border-zeno-border px-4 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface disabled:opacity-30 disabled:cursor-not-allowed"
       :aria-label="isPlaying ? 'Pause' : 'Play'"
+      :disabled="isFinished"
       @click="emit('toggle-play-pause')"
     >
       {{ isPlaying ? "Pause" : isPaused ? "Resume" : "Play" }}

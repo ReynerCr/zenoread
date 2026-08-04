@@ -387,6 +387,44 @@ describe("ReadingContainer — cross-section auto-advance", () => {
     expect(wrapper.find('[data-testid="block-counter"]').text()).toBe("block 2 / 2");
     // Playback stopped at end-of-content (not paused/playing).
     expect(wrapper.find('button[aria-label="Pause"]').exists()).toBe(false);
+    // Nothing left to resume: Play is disabled at the end.
+    expect(wrapper.find('button[aria-label="Play"]').attributes("disabled")).toBeDefined();
+
+    // Next block at the end stays at the end (still finished, Play disabled).
+    await wrapper.find('button[aria-label="Next block"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('[data-testid="block-counter"]').text()).toBe("block 2 / 2");
+    expect(wrapper.find('button[aria-label="Play"]').attributes("disabled")).toBeDefined();
+  });
+
+  it("re-enables Play after navigating back a block from the end", async () => {
+    const { wrapper } = await mountWithPdfDoc();
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="Play"]').trigger("click");
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(wrapper.find('button[aria-label="Play"]').attributes("disabled")).toBeDefined();
+
+    await wrapper.find('button[aria-label="Previous block"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('button[aria-label="Play"]').attributes("disabled")).toBeUndefined();
+    expect(wrapper.find('[data-testid="block-counter"]').text()).toBe("block 1 / 2");
+  });
+
+  it("re-enables Play after navigating to another page from the end", async () => {
+    const { wrapper } = await mountWithPdfDoc();
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="Play"]').trigger("click");
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(wrapper.find('button[aria-label="Play"]').attributes("disabled")).toBeDefined();
+
+    await wrapper.find('button[aria-label="Previous page"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('button[aria-label="Play"]').attributes("disabled")).toBeUndefined();
+    expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("2");
   });
 
   it("wraps prev() from first block of a section to the last block of the previous section", async () => {

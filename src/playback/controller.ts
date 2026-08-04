@@ -2,7 +2,7 @@ import type { PauseMultipliers } from "../db/schemas/userSettings.schema";
 import type { WordBlock } from "../parsing/types";
 import { computeBlockDuration } from "../parsing/pause";
 
-export type PlaybackState = "play" | "pause" | "stop";
+export type PlaybackState = "play" | "pause" | "stop" | "finished";
 
 export interface PlaybackConfig {
   blocks: WordBlock[];
@@ -21,9 +21,10 @@ export interface PlaybackEvents {
  * State machine + timer loop that drives the RSVP display.
  *
  * States:
- * - `stop`  — not playing, index at 0.
- * - `play`  — actively advancing; a timer is scheduled for the current block.
- * - `pause` — frozen at the current index; no timer running.
+ * - `stop`      — not playing, index at 0.
+ * - `play`      — actively advancing; a timer is scheduled for the current block.
+ * - `pause`     — frozen at the current index; no timer running.
+ * - `finished`  — terminal end-of-content: the last block is held, Play is disabled.
  *
  * The controller is framework-agnostic and emits changes via callbacks so a
  * Vue composable (Point 4) can bridge it to reactivity.
@@ -93,6 +94,7 @@ export class PlaybackController {
   }
 
   play(): void {
+    if (this._state === "finished") return;
     if (this._state === "play" && !this.isFinished) return;
     if (this.blocks.length === 0) return;
 
@@ -119,7 +121,8 @@ export class PlaybackController {
 
   /** Ends playback at the last block (terminal end-of-content). */
   stopAtEnd(): void {
-    this.halt();
+    this.clearTimer();
+    this.setState("finished");
     if (this.blocks.length > 0) {
       this.index = this.blocks.length - 1;
     }
@@ -152,6 +155,9 @@ export class PlaybackController {
   // --- internals ---
 
   private afterSkip(): void {
+    // Navigating away from the terminal end returns the reader to a plain
+    // stop so Play is usable again.
+    if (this._state === "finished") this.setState("stop");
     this.emitBlock();
     if (this._state === "play") {
       this.clearTimer();
