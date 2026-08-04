@@ -133,8 +133,11 @@ async function loadFromTauriDialog(): Promise<ParsedDocument | null> {
   const selected = await open({
     multiple: false,
     filters: [
-      { name: "Text files", extensions: ["txt"] },
+      // Tauri uses the first filter as the dialog default; keep an
+      // "All supported files" entry first so users see both formats.
+      { name: "All supported files", extensions: ["txt", "pdf"] },
       { name: "PDF files", extensions: ["pdf"] },
+      { name: "Text files", extensions: ["txt"] },
     ],
   });
   if (!selected) return null;
