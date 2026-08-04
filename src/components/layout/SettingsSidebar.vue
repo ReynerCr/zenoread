@@ -3,7 +3,6 @@ import { ref } from "vue";
 import { confirm as tauriConfirm } from "@tauri-apps/plugin-dialog";
 import { useSettingsStore } from "../../stores/settings";
 import { useDocumentsStore } from "../../stores/documents";
-import { useProgressStore } from "../../stores/progress";
 import { resetDatabase } from "../../db/database";
 import {
   DEFAULT_PAUSE_MULTIPLIERS,
@@ -18,7 +17,6 @@ const emit = defineEmits<{ (e: "close"): void }>();
 
 const settings = useSettingsStore();
 const documentsStore = useDocumentsStore();
-const progressStore = useProgressStore();
 const advancedOpen = ref(false);
 
 const PAUSE_FIELDS: { key: keyof PauseMultipliers; label: string }[] = [
@@ -31,6 +29,16 @@ const PAUSE_FIELDS: { key: keyof PauseMultipliers; label: string }[] = [
   { key: "paragraph", label: "Paragraph" },
 ];
 
+const FONT_FAMILIES: { label: string; value: string }[] = [
+  { label: "System", value: "system-ui" },
+  { label: "Georgia", value: "Georgia" },
+  { label: "Times New Roman", value: "Times New Roman" },
+  { label: "Arial", value: "Arial" },
+  { label: "Verdana", value: "Verdana" },
+  { label: "Trebuchet MS", value: "Trebuchet MS" },
+  { label: "Courier New", value: "Courier New" },
+];
+
 function onWpmChange(value: number) {
   void settings.update({ wpm_default: value });
 }
@@ -41,6 +49,10 @@ function onMaxWordsChange(value: number) {
 
 function onFontSizeChange(value: number) {
   void settings.update({ font_size: value });
+}
+
+function onFontFamilyChange(value: string) {
+  void settings.update({ font_family: value });
 }
 
 function onPauseChange(key: keyof PauseMultipliers, value: number) {
@@ -74,7 +86,6 @@ async function resetAppData() {
   await resetDatabase();
   documentsStore.clearAll();
   documentsStore.setCurrent(null);
-  progressStore.clearProgress();
   // Reload to ensure all stores re-initialize from the fresh database.
   window.location.reload();
 }
@@ -129,6 +140,34 @@ async function resetAppData() {
         unit="px"
         @update:model-value="onFontSizeChange"
       />
+
+      <div class="flex items-center justify-between">
+        <label class="text-xs font-medium text-zeno-muted" for="font-family">
+          Font family
+        </label>
+        <div class="relative">
+          <select
+            id="font-family"
+            class="appearance-none rounded-md border border-zeno-border bg-zeno-bg py-1 pl-2 pr-6 text-sm text-zeno-text"
+            :value="settings.settings.font_family"
+            @change="onFontFamilyChange(($event.target as HTMLSelectElement).value)"
+          >
+            <option
+              v-for="f in FONT_FAMILIES"
+              :key="f.value"
+              :value="f.value"
+              :style="{ fontFamily: f.value }"
+            >
+              {{ f.label }}
+            </option>
+          </select>
+          <span
+            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-zeno-muted"
+          >
+            ▾
+          </span>
+        </div>
+      </div>
 
       <div class="flex items-center justify-between">
         <span class="text-xs font-medium text-zeno-muted">Theme</span>

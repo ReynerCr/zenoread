@@ -129,7 +129,7 @@ describe("ReadingContainer — rendering", () => {
     const { wrapper } = await mountReader();
     const progress = wrapper.find('[data-testid="progress"]');
     expect(progress.exists()).toBe(true);
-    expect(progress.text()).toMatch(/^¶ 1 \/ \d+$/);
+    expect(progress.text()).toMatch(/^¶ 1 \/ \d+ · \d+%$/);
   });
 
   it("shows block counter when setting is enabled", async () => {
@@ -263,7 +263,7 @@ describe("ReadingContainer — page navigation", () => {
   it("shows page-based progress when sections are loaded", async () => {
     const { wrapper } = await mountWithPdfDoc();
     const progress = wrapper.find('[data-testid="progress"]');
-    expect(progress.text()).toMatch(/^Page 1 · ¶ \d+$/);
+    expect(progress.text()).toMatch(/^Page 1 · ¶ \d+ · \d+%$/);
   });
 
   it("next page button advances to the second page", async () => {
@@ -272,7 +272,29 @@ describe("ReadingContainer — page navigation", () => {
     await wrapper.find('button[aria-label="Next page"]').trigger("click");
     await flushPromises();
     expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("2");
-    expect(wrapper.find('[data-testid="progress"]').text()).toMatch(/^Page 2 · ¶ \d+$/);
+    expect(wrapper.find('[data-testid="progress"]').text()).toMatch(/^Page 2 · ¶ \d+ · \d+%$/);
+  });
+
+  it("turning the page persists progress for the open document", async () => {
+    const { wrapper, pinia } = await mountWithPdfDoc();
+    const progressStore = useProgressStore(pinia);
+    const saveSpy = vi.spyOn(progressStore, "saveProgress").mockResolvedValue(undefined);
+
+    await wrapper.find('button[aria-label="Next page"]').trigger("click");
+    await flushPromises();
+
+    expect(saveSpy).toHaveBeenCalledWith("test-id", 1, 0, 3, expect.any(Number));
+  });
+
+  it("updates the completion preview as blocks advance", async () => {
+    const { wrapper, pinia } = await mountWithPdfDoc();
+    const progressStore = useProgressStore(pinia);
+
+    await wrapper.find('button[aria-label="Next block"]').trigger("click");
+    await flushPromises();
+
+    // Page 1, block 2 of 2 → (0 + 1/2) / 3 ≈ 17%.
+    expect(progressStore.progressByDocId["test-id"]).toBe(17);
   });
 
   it("prev page button goes back to the first page", async () => {
@@ -305,7 +327,7 @@ describe("ReadingContainer — page navigation", () => {
     await input.trigger("change");
     await flushPromises();
     expect(wrapper.find('input[aria-label="Page number"]').attributes("value")).toBe("3");
-    expect(wrapper.find('[data-testid="progress"]').text()).toMatch(/^Page 3 · ¶ \d+$/);
+    expect(wrapper.find('[data-testid="progress"]').text()).toMatch(/^Page 3 · ¶ \d+ · \d+%$/);
   });
 });
 

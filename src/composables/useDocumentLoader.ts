@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
+import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import { loadDocumentFromDialog, loadDocumentFromPath } from "../documents/fileLoader";
 import { TxtStreamer } from "../documents/txtStreamer";
 import type { ParsedDocument } from "../documents/types";
@@ -45,7 +45,6 @@ export function useDocumentLoader(playback: ReturnType<typeof usePlayback>) {
   function loadSample() {
     loadedDocument.value = null;
     savedDocId.value = null;
-    progressStore.clearProgress();
     void playback.attachStreamer(
       new TxtStreamer(SAMPLE_TEXT),
       currentSegmentConfig(),
@@ -129,6 +128,36 @@ export function useDocumentLoader(playback: ReturnType<typeof usePlayback>) {
 
   // Pause is the shared freeze-and-save path for both Stop and Pause.
   playback.registerPauseSave(saveCurrentProgress);
+
+  // Page turns are save points: persist the position whenever the reader moves
+  // to a new section, so progress survives quitting mid-session.
+  watch(
+    () => playback.currentSection.value,
+    () => saveCurrentProgress(),
+  );
+
+  // Mirror the reader's live position into the Recent list without a db write,
+  // so the open document's completion ticks in step with the reader label.
+  watch(
+    () => [
+      playback.currentSection.value,
+      playback.currentIndex.value,
+      playback.totalBlocks.value,
+      playback.sectionCount.value,
+    ],
+    () => {
+      if (!savedDocId.value) return;
+      const totalBlocks = playback.totalBlocks.value;
+      if (totalBlocks <= 0) return;
+      progressStore.updateCompletionPreview(
+        savedDocId.value,
+        playback.currentSection.value,
+        playback.currentIndex.value,
+        playback.sectionCount.value,
+        totalBlocks,
+      );
+    },
+  );
 
   function saveCurrentProgress() {
     if (!savedDocId.value) return;
