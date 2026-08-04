@@ -4,7 +4,6 @@ export interface ShortcutHandlers {
   onTogglePlayPause: () => void;
   onNext: () => void;
   onPrev: () => void;
-  onStop: () => void;
 }
 
 /**
@@ -14,7 +13,6 @@ export interface ShortcutHandlers {
  * - Space → toggle play/pause
  * - ArrowRight → next block
  * - ArrowLeft → previous block
- * - ArrowDown → stop (reset to first block)
  */
 export function useKeyboardShortcuts(handlers: ShortcutHandlers): void {
   function onKeyDown(event: KeyboardEvent) {
@@ -30,10 +28,6 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers): void {
       case "ArrowLeft":
         event.preventDefault();
         handlers.onPrev();
-        break;
-      case "ArrowDown":
-        event.preventDefault();
-        handlers.onStop();
         break;
     }
   }
