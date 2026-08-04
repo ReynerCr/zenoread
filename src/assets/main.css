@@ -19,6 +19,7 @@
 
 :root,
 [data-theme="light"] {
+  color-scheme: light;
   --zeno-bg: #f5f5f4;
   --zeno-surface: #ffffff;
   --zeno-border: #e7e5e4;
@@ -28,6 +29,7 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --zeno-bg: #0c0a09;
   --zeno-surface: #1c1917;
   --zeno-border: #292524;
