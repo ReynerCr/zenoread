@@ -1,10 +1,17 @@
-import { describe, it, expect } from "vitest";
-import { validateContent } from "./fileLoader";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { validateContent, loadDocumentFromDialog } from "./fileLoader";
 import { AppError } from "../utils/errors";
 import { TxtStreamer } from "./txtStreamer";
 import { PdfStreamer } from "./pdfStreamer";
 import type { ParsedDocument } from "./types";
 import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist";
+
+const mockOpen = vi.hoisted(() => vi.fn());
+vi.mock("@tauri-apps/plugin-dialog", () => ({ open: mockOpen }));
+vi.mock("../utils/platform", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../utils/platform")>();
+  return { ...actual, isTauri: vi.fn(() => true) };
+});
 
 function makeTxtDoc(text: string): ParsedDocument {
   return {
@@ -34,6 +41,24 @@ function makePdfDoc(): ParsedDocument {
     streamer: new PdfStreamer(pdf, loadingTask),
   };
 }
+
+describe("loadFromTauriDialog", () => {
+  beforeEach(() => mockOpen.mockReset());
+
+  it("defaults the dialog to an 'All supported files' filter", async () => {
+    mockOpen.mockResolvedValue(null);
+    await loadDocumentFromDialog();
+    expect(mockOpen).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: [
+          { name: "All supported files", extensions: ["txt", "pdf"] },
+          { name: "PDF files", extensions: ["pdf"] },
+          { name: "Text files", extensions: ["txt"] },
+        ],
+      }),
+    );
+  });
+});
 
 describe("validateContent", () => {
   it("passes through TXT documents with content", async () => {
