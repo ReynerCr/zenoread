@@ -86,14 +86,18 @@ export function usePlayback() {
   }
 
   async function detachStreamer(): Promise<void> {
-    if (streamer.value) await streamer.value.close();
+    const old = streamer.value;
     streamer.value = null;
     segmentConfig.value = null;
     cache.clear();
     currentSection.value = 0;
     sectionCount.value = 0;
     blocks.value = [];
+    currentBlock.value = null;
+    currentIndex.value = 0;
+    totalBlocks.value = 0;
     controller.value?.halt();
+    if (old) await old.close();
   }
 
   async function loadSection(sectionIndex: number, startIndex = 0, initialState: PlaybackState = "stop"): Promise<void> {

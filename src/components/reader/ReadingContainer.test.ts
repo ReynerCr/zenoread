@@ -571,3 +571,47 @@ describe("ReadingContainer — loading state", () => {
     expect(wrapper.find('[data-testid="loading-indicator"]').exists()).toBe(false);
   });
 });
+
+describe("ReadingContainer — a load pauses playback and keeps the document", () => {
+  it("pauses playback and keeps the document while the picker is open and on cancel", async () => {
+    let resolveDialog!: (v: null) => void;
+    mockLoadDocumentFromDialog.mockImplementation(
+      () => new Promise((r) => { resolveDialog = r; }),
+    );
+    const { wrapper } = await mountReader();
+    await wrapper.find('button[aria-label="Play"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('button[aria-label="Pause"]').exists()).toBe(true);
+
+    await wrapper.find('button[aria-label="Open file"]').trigger("click");
+    await flushPromises();
+
+    // Spinner shows and playback pauses (Resume) while picking.
+    expect(wrapper.find('[data-testid="loading-indicator"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Play"]').text()).toBe("Resume");
+
+    resolveDialog(null); // cancel
+    await flushPromises();
+
+    // Loader gone; the document is kept (content restored, not the empty prompt)
+    // and playback stays paused.
+    expect(wrapper.find('[data-testid="loading-indicator"]').exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Play"]').text()).toBe("Resume");
+    expect(wrapper.find('[aria-label="Reading area"] p.font-semibold').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="Reading area"]').text()).not.toContain("Load a document to start reading.");
+  });
+
+  it("keeps the document after a cancelled dialog when not playing", async () => {
+    mockLoadDocumentFromDialog.mockResolvedValue(null);
+    const { wrapper } = await mountReader();
+    expect(wrapper.find('[aria-label="Reading area"] p.font-semibold').exists()).toBe(true);
+
+    await wrapper.find('button[aria-label="Open file"]').trigger("click");
+    await flushPromises();
+
+    // Pause is a no-op when not playing; the current document content remains.
+    expect(wrapper.find('[data-testid="loading-indicator"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="Reading area"] p.font-semibold').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="Reading area"]').text()).not.toContain("Load a document to start reading.");
+  });
+});

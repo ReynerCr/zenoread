@@ -57,6 +57,9 @@ export function useDocumentLoader(playback: ReturnType<typeof usePlayback>) {
   async function openFile() {
     if (isLoading.value) return;
     documentsStore.setLoading(true);
+    // Pause playback while the user picks a file; keep the current document
+    // loaded so a cancelled dialog leaves the reader where it was.
+    playback.pause();
     try {
       const doc = await loadDocumentFromDialog();
       if (!doc) return;
@@ -69,6 +72,7 @@ export function useDocumentLoader(playback: ReturnType<typeof usePlayback>) {
   async function openFromLibrary(docId: string) {
     if (isLoading.value) return;
     documentsStore.setLoading(true);
+    playback.pause();
     try {
       const meta = await documentsStore.getDocument(docId);
       if (!meta) return;
@@ -113,6 +117,7 @@ export function useDocumentLoader(playback: ReturnType<typeof usePlayback>) {
     async (doc) => {
       if (isLoading.value) return;
       documentsStore.setLoading(true);
+      playback.pause();
       try {
         await openParsedDocument(doc);
       } finally {
