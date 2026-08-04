@@ -10,7 +10,6 @@ defineProps<{
 
 const emit = defineEmits<{
   "toggle-play-pause": [];
-  stop: [];
   "next-block": [];
   "prev-block": [];
   "prev-page": [];
@@ -68,13 +67,6 @@ function onPageInput(event: Event) {
       @click="emit('toggle-play-pause')"
     >
       {{ isPlaying ? "Pause" : isPaused ? "Resume" : "Play" }}
-    </button>
-    <button
-      class="rounded-md border border-zeno-border px-3 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface"
-      aria-label="Stop"
-      @click="emit('stop')"
-    >
-      Stop
     </button>
     <button
       class="rounded-md border border-zeno-border px-3 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface"
