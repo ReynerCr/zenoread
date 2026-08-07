@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, shallowRef, watch, type Ref } from "vue";
 import { loadDocumentFromDialog, loadDocumentFromPath } from "../documents/fileLoader";
 import { TxtStreamer } from "../documents/txtStreamer";
 import type { ParsedDocument } from "../documents/types";
@@ -23,7 +23,10 @@ const SAMPLE_TEXT =
  * Registers the `beforeunload` save and streamer cleanup with the host
  * component's lifecycle.
  */
-export function useDocumentLoader(playback: ReturnType<typeof usePlayback>) {
+export function useDocumentLoader(
+  playback: ReturnType<typeof usePlayback>,
+  dropZoneRef: Ref<HTMLElement | null>,
+) {
   const settings = useSettingsStore();
   const documentsStore = useDocumentsStore();
   const { isLoading } = storeToRefs(documentsStore);
@@ -32,7 +35,6 @@ export function useDocumentLoader(playback: ReturnType<typeof usePlayback>) {
   const loadedDocument = shallowRef<ParsedDocument | null>(null);
   const savedDocId = ref<string | null>(null);
   const saveState = ref<"idle" | "saving" | "saved">("idle");
-  const dropZoneRef = ref<HTMLElement | null>(null);
 
   function currentSegmentConfig(): SegmentConfig {
     return {
@@ -199,7 +201,6 @@ export function useDocumentLoader(playback: ReturnType<typeof usePlayback>) {
     loadedDocument,
     savedDocId,
     saveState,
-    dropZoneRef,
     isDragOver,
     loadSample,
     openFile,

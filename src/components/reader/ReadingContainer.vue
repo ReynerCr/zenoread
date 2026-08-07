@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed, useTemplateRef, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useDocumentsStore } from "../../stores/documents";
 import { useSettingsStore } from "../../stores/settings";
@@ -14,15 +14,16 @@ const playback = usePlayback();
 const documentsStore = useDocumentsStore();
 const { isLoading } = storeToRefs(documentsStore);
 
+const dropZoneRef = useTemplateRef<HTMLElement>("dropZoneRef");
+
 const {
   loadedDocument,
   saveState,
-  dropZoneRef,
   isDragOver,
   openFile,
   openFromLibrary,
   currentSegmentConfig,
-} = useDocumentLoader(playback);
+} = useDocumentLoader(playback, dropZoneRef);
 
 useKeyboardShortcuts({
   onTogglePlayPause: togglePlayPause,
