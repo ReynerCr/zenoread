@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("File loading — web fallback", () => {
+test.describe("File loading: web fallback", () => {
 
   test("Open file button is visible", async ({ page }) => {
     await page.goto("/");
@@ -73,16 +73,20 @@ test.describe("File loading — web fallback", () => {
 
     // Wait for the document to load.
     await expect(page.locator("span.max-w-xs", { hasText: "Persisted Doc Title" })).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText(/^1 \/ \d+$/)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/^¶ 1 \/ \d+ · \d+%$/)).toBeVisible({ timeout: 5000 });
 
-    // Advance to block 3.
+    // Advance two blocks past the start; the progress label shows the
+    // completion percentage, so it should move off 0%.
     const nextBtn = page.getByRole("button", { name: "Next block" });
     await nextBtn.click();
     await nextBtn.click();
-    await expect(page.getByText(/^3 \/ \d+$/)).toBeVisible();
+    await expect(page.getByText(/^¶ \d+ \/ \d+ · [1-9]\d*%$/)).toBeVisible();
 
-    // Stop to trigger progress save (saves current position before resetting).
-    await page.getByRole("button", { name: "Stop" }).click();
+    // Play then pause to trigger a progress save (pause is the shared
+    // freeze-and-save path now that the Stop button is gone).
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Pause", exact: true }).click();
     // Wait for the async RxDB save to complete.
     await expect(page.locator("[data-save-state='saved']")).toBeVisible({ timeout: 5000 });
 
@@ -100,14 +104,14 @@ test.describe("File loading — web fallback", () => {
       buffer: Buffer.from(fileContent),
     });
 
-    // The position should be restored to block 3 (or close to it, since
-    // block indices may shift slightly if settings differ — but the key
-    // is that it's NOT at block 1).
+    // The position should be restored to a point past the start (the exact
+    // block may shift slightly if settings differ, the key is that the
+    // completion percentage is not 0%).
     await expect(page.locator("span.max-w-xs", { hasText: "Persisted Doc Title" })).toBeVisible({ timeout: 5000 });
     // Wait for the progress to be restored (may happen after the title appears).
-    await expect(page.locator('[data-testid="progress"]')).not.toHaveText(/^1 \/ \d+$/, { timeout: 5000 });
+    await expect(page.locator('[data-testid="progress"]')).not.toHaveText(/· 0%$/, { timeout: 5000 });
     const progressText = await page.locator('[data-testid="progress"]').textContent();
-    const blockNum = parseInt(progressText!.split(" / ")[0], 10);
-    expect(blockNum).toBeGreaterThan(1);
+    const percentage = parseInt(progressText!.match(/· (\d+)%$/)?.[1] ?? "0", 10);
+    expect(percentage).toBeGreaterThan(0);
   });
 });
