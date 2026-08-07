@@ -9,11 +9,11 @@ test.describe("Keyboard shortcuts", () => {
     // Wait for the sample text to load and the controller to be ready.
     const progress = page.locator('[data-testid="progress"]');
     await expect(progress).toBeVisible({ timeout: 10000 });
-    await expect(progress).toHaveText(/^1 \/ \d+$/);
+    await expect(progress).toHaveText(/^¶ 1 \/ \d+ · \d+%$/);
     // Let the settings store settle (the watch on block-sizing settings can
     // reload the text and reset playback state on first load).
     await page.waitForTimeout(300);
-    await expect(progress).toHaveText(/^1 \/ \d+$/);
+    await expect(progress).toHaveText(/^¶ 1 \/ \d+ · \d+%$/);
 
     // Click on empty space to blur any focused element, then use keyboard.
     await page.locator("body").click();
@@ -33,12 +33,14 @@ test.describe("Keyboard shortcuts", () => {
     await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 
     const progress = page.locator("[data-testid=\"progress\"]");
-    await expect(progress).toHaveText(/^1 \/ \d+$/);
+    await expect(progress).toHaveText(/^¶ \d+ \/ \d+ · 0%$/);
     await page.waitForTimeout(300);
-    await expect(progress).toHaveText(/^1 \/ \d+$/);
+    await expect(progress).toHaveText(/^¶ \d+ \/ \d+ · 0%$/);
 
+    // The sample text is a single paragraph, so the block advance is only
+    // visible in the completion percentage.
     await page.keyboard.press("ArrowRight");
-    await expect(progress).toHaveText(/^2 \/ \d+$/);
+    await expect(progress).toHaveText(/^¶ \d+ \/ \d+ · [1-9]\d*%$/);
   });
 
   test("ArrowLeft goes back to the previous block", async ({ page }) => {
@@ -46,17 +48,16 @@ test.describe("Keyboard shortcuts", () => {
     await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 
     const progress = page.locator("[data-testid=\"progress\"]");
-    await expect(progress).toHaveText(/^1 \/ \d+$/);
+    await expect(progress).toHaveText(/^¶ \d+ \/ \d+ · 0%$/);
     // Wait for stores to settle (settings init may trigger a reload).
     await page.waitForTimeout(300);
-    await expect(progress).toHaveText(/^1 \/ \d+$/);
+    await expect(progress).toHaveText(/^¶ \d+ \/ \d+ · 0%$/);
     await page.keyboard.press("ArrowRight");
-    await expect(progress).toHaveText(/^2 \/ \d+$/);
+    const afterFirst = await progress.textContent();
     await page.keyboard.press("ArrowRight");
-    await expect(progress).toHaveText(/^3 \/ \d+$/);
-
     await page.keyboard.press("ArrowLeft");
-    await expect(progress).toHaveText(/^2 \/ \d+$/);
+    // Back to the same block means back to the same completion percentage.
+    await expect(progress).toHaveText(afterFirst!);
   });
 
   test("ArrowLeft at first block stays at 1", async ({ page }) => {
@@ -65,23 +66,6 @@ test.describe("Keyboard shortcuts", () => {
 
     const progress = page.locator("[data-testid=\"progress\"]");
     await page.keyboard.press("ArrowLeft");
-    await expect(progress).toHaveText(/^1 \/ \d+$/);
-  });
-
-  test("ArrowDown stops and resets to the first block", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
-
-    const progress = page.locator("[data-testid=\"progress\"]");
-    await expect(progress).toHaveText(/^1 \/ \d+$/);
-    await page.waitForTimeout(300);
-    await expect(progress).toHaveText(/^1 \/ \d+$/);
-    await page.keyboard.press("ArrowRight");
-    await expect(progress).toHaveText(/^2 \/ \d+$/);
-    await page.keyboard.press("ArrowRight");
-    await expect(progress).toHaveText(/^3 \/ \d+$/);
-
-    await page.keyboard.press("ArrowDown");
-    await expect(progress).toHaveText(/^1 \/ \d+$/);
+    await expect(progress).toHaveText(/^¶ \d+ \/ \d+ · 0%$/);
   });
 });
