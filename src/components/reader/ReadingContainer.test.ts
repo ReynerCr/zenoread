@@ -514,7 +514,7 @@ function makePdfDoc(title: string, pages: string[]): { doc: ParsedDocument; dest
   const streamer = new PdfStreamer(makeMockPdf(pages), loadingTask);
   return {
     doc: { title, file_path: `/${title}.pdf`, file_type: "pdf", language: "en", streamer },
-    destroy: loadingTask.destroy as any,
+    destroy: loadingTask.destroy as ReturnType<typeof vi.fn>,
   };
 }
 

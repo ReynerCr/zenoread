@@ -31,7 +31,9 @@ function handleContinue() {
     data-testid="recovery-dialog"
   >
     <div class="mx-4 max-w-md rounded-lg border border-zeno-border bg-zeno-surface p-6 shadow-xl">
-      <h2 class="mb-3 text-lg font-semibold text-zeno-text">Storage problem detected</h2>
+      <h2 class="mb-3 text-lg font-semibold text-zeno-text">
+        Storage problem detected
+      </h2>
       <p class="mb-4 text-sm text-zeno-muted">
         ZenoRead couldn't access its local database. This can happen after a corrupted update or
         a browser data clear. Your reading data may be inaccessible.

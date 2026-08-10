@@ -158,8 +158,12 @@ defineExpose({ openFromLibrary });
 
     <!-- Centered word display -->
     <div class="flex flex-1 items-center justify-center">
-      <div v-if="isLoading" data-testid="loading-indicator" class="flex flex-col items-center gap-2">
-        <div class="h-6 w-6 animate-spin rounded-full border-2 border-zeno-border border-t-zeno-accent"></div>
+      <div
+        v-if="isLoading"
+        data-testid="loading-indicator"
+        class="flex flex-col items-center gap-2"
+      >
+        <div class="h-6 w-6 animate-spin rounded-full border-2 border-zeno-border border-t-zeno-accent" />
         <span class="text-sm text-zeno-muted">Loading...</span>
       </div>
       <p
@@ -176,7 +180,10 @@ defineExpose({ openFromLibrary });
       >
         {{ emptyPageLabel }}
       </p>
-      <p v-else class="text-sm text-zeno-muted">
+      <p
+        v-else
+        class="text-sm text-zeno-muted"
+      >
         Load a document to start reading.
       </p>
     </div>
@@ -184,7 +191,10 @@ defineExpose({ openFromLibrary });
     <!-- Document title + progress + controls -->
     <div class="flex flex-col items-center gap-3 pb-6">
       <div class="flex items-center gap-3">
-        <span v-if="hasDocument" class="max-w-xs truncate text-xs text-zeno-muted">
+        <span
+          v-if="hasDocument"
+          class="max-w-xs truncate text-xs text-zeno-muted"
+        >
           {{ loadedDocument?.title }}
         </span>
         <button
@@ -197,7 +207,11 @@ defineExpose({ openFromLibrary });
         </button>
       </div>
 
-      <span v-if="progressLabel" data-testid="progress" class="text-xs text-zeno-muted tabular-nums">
+      <span
+        v-if="progressLabel"
+        data-testid="progress"
+        class="text-xs text-zeno-muted tabular-nums"
+      >
         {{ progressLabel }}
       </span>
       <span
