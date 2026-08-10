@@ -46,11 +46,18 @@ function handleOpenDoc(docId: string) {
     </header>
 
     <div class="flex min-h-0 flex-1">
-      <RecentDocuments :open="recentOpen" @close="recentOpen = false" @open-doc="handleOpenDoc" />
+      <RecentDocuments
+        :open="recentOpen"
+        @close="recentOpen = false"
+        @open-doc="handleOpenDoc"
+      />
       <main class="min-w-0 flex-1">
         <ReadingContainer ref="readerRef" />
       </main>
-      <SettingsSidebar :open="settingsOpen" @close="settingsOpen = false" />
+      <SettingsSidebar
+        :open="settingsOpen"
+        @close="settingsOpen = false"
+      />
     </div>
   </div>
 </template>

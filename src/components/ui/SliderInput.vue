@@ -51,7 +51,10 @@ const displayValue = computed(() => {
 <template>
   <div class="flex flex-col gap-1.5">
     <div class="flex items-center justify-between">
-      <label class="text-xs font-medium text-zeno-muted" :for="`slider-${inputId}`">
+      <label
+        class="text-xs font-medium text-zeno-muted"
+        :for="`slider-${inputId}`"
+      >
         {{ label }}: {{ displayValue }}
       </label>
       <input
@@ -64,7 +67,7 @@ const displayValue = computed(() => {
         class="w-16 rounded border border-zeno-border bg-zeno-bg px-1.5 py-0.5 text-xs text-zeno-text tabular-nums focus:border-zeno-accent focus:outline-none"
         @input="onNumberInput"
         @blur="onNumberBlur"
-      />
+      >
     </div>
     <div class="flex items-center gap-2">
       <span class="w-6 text-right text-[10px] tabular-nums text-zeno-muted/60">{{ min }}</span>
@@ -77,7 +80,7 @@ const displayValue = computed(() => {
         :value="modelValue"
         class="flex-1 accent-zeno-accent"
         @input="onSliderInput"
-      />
+      >
       <span class="w-6 text-[10px] tabular-nums text-zeno-muted/60">{{ max }}</span>
     </div>
   </div>

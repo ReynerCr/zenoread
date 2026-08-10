@@ -88,8 +88,14 @@ function handleOpenDoc(docId: string) {
         </p>
       </template>
 
-      <ul v-else class="flex flex-col gap-1 overflow-y-auto">
-        <li v-for="doc in sortedDocs" :key="doc.id">
+      <ul
+        v-else
+        class="flex flex-col gap-1 overflow-y-auto"
+      >
+        <li
+          v-for="doc in sortedDocs"
+          :key="doc.id"
+        >
           <button
             class="flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left hover:bg-zeno-bg disabled:opacity-50 disabled:cursor-not-allowed"
             :aria-label="`Open ${doc.title}`"

@@ -23,7 +23,11 @@ function onPageInput(event: Event) {
 </script>
 
 <template>
-  <div v-if="hasSections" class="flex items-center gap-1" data-testid="page-nav">
+  <div
+    v-if="hasSections"
+    class="flex items-center gap-1"
+    data-testid="page-nav"
+  >
     <button
       class="rounded-md border border-zeno-border px-2 py-1 text-xs text-zeno-text hover:bg-zeno-surface disabled:opacity-30 disabled:cursor-not-allowed"
       aria-label="Previous page"
@@ -40,7 +44,7 @@ function onPageInput(event: Event) {
       class="w-12 rounded-md border border-zeno-border bg-zeno-bg px-2 py-1 text-center text-xs text-zeno-text tabular-nums"
       aria-label="Page number"
       @change="onPageInput"
-    />
+    >
     <span class="text-xs text-zeno-muted tabular-nums">/ {{ totalPages }}</span>
     <button
       class="rounded-md border border-zeno-border px-2 py-1 text-xs text-zeno-text hover:bg-zeno-surface disabled:opacity-30 disabled:cursor-not-allowed"

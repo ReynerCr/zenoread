@@ -142,7 +142,10 @@ async function resetAppData() {
       />
 
       <div class="flex items-center justify-between">
-        <label class="text-xs font-medium text-zeno-muted" for="font-family">
+        <label
+          class="text-xs font-medium text-zeno-muted"
+          for="font-family"
+        >
           Font family
         </label>
         <div class="relative">
@@ -196,7 +199,7 @@ async function resetAppData() {
               split_on_sentence_end: ($event.target as HTMLInputElement).checked,
             })
           "
-        />
+        >
       </div>
 
       <div class="flex items-center justify-between">
@@ -216,7 +219,7 @@ async function resetAppData() {
               show_block_counter: ($event.target as HTMLInputElement).checked,
             })
           "
-        />
+        >
       </div>
 
       <!-- Advanced: pause multipliers (progressive disclosure) -->

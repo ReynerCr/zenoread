@@ -34,7 +34,6 @@ export async function logError(
   const line = `[${context}] ${userMessage} — ${technicalMessage}`;
 
   if (!isTauri()) {
-    // eslint-disable-next-line no-console
     console.error(`[ZenoRead:${context}]`, userMessage, technicalMessage);
     return;
   }
@@ -47,7 +46,6 @@ export async function logError(
       await warn(line);
     }
   } catch {
-    // eslint-disable-next-line no-console
     console.error(`[ZenoRead:${context}]`, userMessage, technicalMessage);
   }
 }
