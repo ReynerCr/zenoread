@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import RecentDocuments from "./RecentDocuments.vue";
+import { i18n } from "../../i18n";
 import { useDocumentsStore } from "../../stores/documents";
 import type { DocumentDocType } from "../../db/schemas/documents.schema";
 
@@ -48,7 +49,7 @@ describe("RecentDocuments", () => {
 
     const wrapper = mount(RecentDocuments, {
       props: { open: true },
-      global: { plugins: [pinia] },
+      global: { plugins: [pinia, i18n] },
     });
     await flushPromises();
 

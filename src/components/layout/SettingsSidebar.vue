@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { confirm as tauriConfirm } from "@tauri-apps/plugin-dialog";
 import { useSettingsStore } from "../../stores/settings";
 import { useDocumentsStore } from "../../stores/documents";
@@ -10,6 +11,7 @@ import {
   type PauseMultipliers,
 } from "../../db/schemas/userSettings.schema";
 import SliderInput from "../ui/SliderInput.vue";
+import { detectLanguage } from "../../i18n";
 import { isTauri } from "../../utils/platform";
 
 defineProps<{ open: boolean }>();
@@ -17,20 +19,21 @@ const emit = defineEmits<{ (e: "close"): void }>();
 
 const settings = useSettingsStore();
 const documentsStore = useDocumentsStore();
+const { t } = useI18n();
 const advancedOpen = ref(false);
 
-const PAUSE_FIELDS: { key: keyof PauseMultipliers; label: string }[] = [
-  { key: "period", label: "Period" },
-  { key: "comma", label: "Comma" },
-  { key: "semicolon", label: "Semicolon" },
-  { key: "colon", label: "Colon" },
-  { key: "question", label: "Question" },
-  { key: "exclamation", label: "Exclamation" },
-  { key: "paragraph", label: "Paragraph" },
+const PAUSE_FIELDS: { key: keyof PauseMultipliers; labelKey: string }[] = [
+  { key: "period", labelKey: "settings.pause.period" },
+  { key: "comma", labelKey: "settings.pause.comma" },
+  { key: "semicolon", labelKey: "settings.pause.semicolon" },
+  { key: "colon", labelKey: "settings.pause.colon" },
+  { key: "question", labelKey: "settings.pause.question" },
+  { key: "exclamation", labelKey: "settings.pause.exclamation" },
+  { key: "paragraph", labelKey: "settings.pause.paragraph" },
 ];
 
-const FONT_FAMILIES: { label: string; value: string }[] = [
-  { label: "System", value: "system-ui" },
+const FONT_FAMILIES: { label?: string; labelKey?: string; value: string }[] = [
+  { labelKey: "settings.fontFamily.system", value: "system-ui" },
   { label: "Georgia", value: "Georgia" },
   { label: "Times New Roman", value: "Times New Roman" },
   { label: "Arial", value: "Arial" },
@@ -75,14 +78,14 @@ function confirmDialog(message: string): Promise<boolean> {
 }
 
 async function resetAllSettings() {
-  if (!(await confirmDialog("Reset all settings to their defaults?"))) return;
+  if (!(await confirmDialog(t("settings.confirmResetDefaults")))) return;
   const { id, ...defaults } = DEFAULT_USER_SETTINGS;
   void id;
-  void settings.update(defaults);
+  void settings.update({ ...defaults, language: detectLanguage() });
 }
 
 async function resetAppData() {
-  if (!(await confirmDialog("Delete ALL app data (settings, documents, progress)? This cannot be undone."))) return;
+  if (!(await confirmDialog(t("settings.confirmDeleteAll")))) return;
   await resetDatabase();
   documentsStore.clearAll();
   documentsStore.setCurrent(null);
@@ -95,17 +98,17 @@ async function resetAppData() {
   <aside
     class="flex h-full flex-col border-l border-zeno-border bg-zeno-surface transition-all duration-200 overflow-hidden"
     :class="open ? 'w-72' : 'w-0'"
-    aria-label="Settings"
+    :aria-label="$t('settings.title')"
     :data-settings-loaded="settings.loaded"
   >
     <div class="flex w-72 flex-col gap-6 p-5">
       <header class="flex items-center justify-between">
         <h2 class="text-sm font-semibold uppercase tracking-wider text-zeno-muted">
-          Settings
+          {{ $t('settings.title') }}
         </h2>
         <button
           class="rounded-md px-2 py-1 text-zeno-muted hover:text-zeno-text"
-          aria-label="Close settings"
+          :aria-label="$t('settings.close')"
           @click="emit('close')"
         >
           ✕
@@ -113,7 +116,7 @@ async function resetAppData() {
       </header>
 
       <SliderInput
-        label="Reading speed"
+        :label="$t('settings.readingSpeed')"
         :min="100"
         :max="1000"
         :step="10"
@@ -123,7 +126,7 @@ async function resetAppData() {
       />
 
       <SliderInput
-        label="Words per screen"
+        :label="$t('settings.wordsPerScreen')"
         :min="1"
         :max="15"
         :step="1"
@@ -132,7 +135,7 @@ async function resetAppData() {
       />
 
       <SliderInput
-        label="Font size"
+        :label="$t('settings.fontSize')"
         :min="16"
         :max="120"
         :step="2"
@@ -146,7 +149,7 @@ async function resetAppData() {
           class="text-xs font-medium text-zeno-muted"
           for="font-family"
         >
-          Font family
+          {{ $t('settings.fontFamily') }}
         </label>
         <div class="relative">
           <select
@@ -161,7 +164,7 @@ async function resetAppData() {
               :value="f.value"
               :style="{ fontFamily: f.value }"
             >
-              {{ f.label }}
+              {{ f.labelKey ? $t(f.labelKey) : f.label }}
             </option>
           </select>
           <span
@@ -173,12 +176,22 @@ async function resetAppData() {
       </div>
 
       <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-zeno-muted">Theme</span>
+        <span class="text-xs font-medium text-zeno-muted">{{ $t('settings.theme') }}</span>
         <button
           class="rounded-md border border-zeno-border px-3 py-1 text-sm text-zeno-text hover:bg-zeno-bg"
           @click="settings.toggleTheme()"
         >
-          {{ settings.theme === "dark" ? "Dark" : "Light" }}
+          {{ settings.theme === "dark" ? $t('settings.theme.dark') : $t('settings.theme.light') }}
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-zeno-muted">{{ $t('settings.language') }}</span>
+        <button
+          class="rounded-md border border-zeno-border px-3 py-1 text-sm text-zeno-text hover:bg-zeno-bg"
+          @click="settings.update({ language: settings.settings.language === 'en' ? 'es' : 'en' })"
+        >
+          {{ settings.settings.language === "en" ? $t('settings.language.en') : $t('settings.language.es') }}
         </button>
       </div>
 
@@ -187,7 +200,7 @@ async function resetAppData() {
           class="text-xs font-medium text-zeno-muted"
           for="split-on-sentence-end"
         >
-          Split at sentence end
+          {{ $t('settings.splitSentenceEnd') }}
         </label>
         <input
           id="split-on-sentence-end"
@@ -207,7 +220,7 @@ async function resetAppData() {
           class="text-xs font-medium text-zeno-muted"
           for="show-block-counter"
         >
-          Show block counter
+          {{ $t('settings.showBlockCounter') }}
         </label>
         <input
           id="show-block-counter"
@@ -230,7 +243,7 @@ async function resetAppData() {
           aria-controls="advanced-pauses"
           @click="advancedOpen = !advancedOpen"
         >
-          <span>Advanced pauses</span>
+          <span>{{ $t('settings.advancedPauses') }}</span>
           <span class="text-zeno-muted">{{ advancedOpen ? "▾" : "▸" }}</span>
         </button>
 
@@ -240,14 +253,13 @@ async function resetAppData() {
           class="flex flex-col gap-4"
         >
           <p class="text-xs text-zeno-muted">
-            Multipliers applied to the base word duration when a block ends with
-            the given punctuation.
+            {{ $t('settings.pauseMultipliers.help') }}
           </p>
 
           <SliderInput
             v-for="field in PAUSE_FIELDS"
             :key="field.key"
-            :label="field.label"
+            :label="$t(field.labelKey)"
             :min="1"
             :max="5"
             :step="0.1"
@@ -260,7 +272,7 @@ async function resetAppData() {
             class="rounded-md border border-zeno-border px-3 py-1.5 text-xs text-zeno-muted hover:text-zeno-text"
             @click="resetPauses"
           >
-            Reset pauses to defaults
+            {{ $t('settings.resetPauses') }}
           </button>
         </div>
       </div>
@@ -271,13 +283,13 @@ async function resetAppData() {
           class="rounded-md border border-zeno-border px-3 py-1.5 text-xs text-zeno-muted hover:text-zeno-text"
           @click="resetAllSettings"
         >
-          Reset all settings
+          {{ $t('settings.resetAllSettings') }}
         </button>
         <button
           class="rounded-md border border-red-500/40 px-3 py-1.5 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-400"
           @click="resetAppData"
         >
-          Delete all app data
+          {{ $t('settings.deleteAllData') }}
         </button>
       </div>
     </div>

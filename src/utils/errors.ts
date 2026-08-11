@@ -1,4 +1,5 @@
 import { useNotificationsStore } from "../stores/notifications";
+import { t } from "../i18n";
 import { logError, type ErrorSeverity } from "./logger";
 
 export class AppError extends Error {
@@ -15,7 +16,7 @@ export function toMessage(error: unknown): string {
   if (error instanceof AppError) return error.userMessage;
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
-  return "An unexpected error occurred.";
+  return t("errors.unexpected");
 }
 
 function toTechnicalMessage(error: unknown): string {

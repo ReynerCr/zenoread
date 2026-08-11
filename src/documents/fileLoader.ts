@@ -5,6 +5,7 @@ import type { ParsedDocument } from "./types";
 import type { FileType } from "../db/schemas/documents.schema";
 import { isTauri } from "../utils/platform";
 import { reportError, AppError } from "../utils/errors";
+import { t } from "../i18n";
 import { detectFileType, isBinaryType, titleFromFilename } from "./fileUtils";
 
 async function readFileFromPath(filePath: string, fileType: FileType): Promise<string | Uint8Array> {
@@ -23,9 +24,9 @@ async function readFileFromBlob(file: File, fileType: FileType): Promise<string 
 
 function emptyContentError(fileType: FileType): AppError {
   if (fileType === "pdf") {
-    return new AppError("This PDF doesn't contain any text. It may be a fully scanned document.");
+    return new AppError(t("errors.pdfEmpty"));
   }
-  return new AppError("The file appears to be empty.");
+  return new AppError(t("errors.fileEmpty"));
 }
 
 export async function validateContent(doc: ParsedDocument): Promise<ParsedDocument> {
@@ -56,7 +57,7 @@ async function withLoaderError<T>(
 function getParserOrReport(fileType: FileType, context: string) {
   const parser = parserRegistry.getParser(fileType);
   if (!parser) {
-    reportError(new Error(`No parser for .${fileType} files yet.`), undefined, { context });
+    reportError(new Error(t("errors.noParser", { type: fileType })), undefined, { context });
   }
   return parser;
 }
@@ -69,7 +70,7 @@ function getParserOrReport(fileType: FileType, context: string) {
 export async function loadDocumentFromDialog(): Promise<ParsedDocument | null> {
   return withLoaderError(
     async () => (isTauri() ? loadFromTauriDialog() : loadFromWebInput()),
-    "Could not load the file.",
+    t("errors.loadFile"),
     "fileLoader.loadDocumentFromDialog",
   );
 }
@@ -97,7 +98,7 @@ export async function loadDocumentFromPath(
         language,
       }));
     },
-    "Could not read the file from disk.",
+    t("errors.readDisk"),
     "fileLoader.loadDocumentFromPath",
   );
 }
@@ -111,7 +112,7 @@ export async function loadDocumentFromFile(file: File): Promise<ParsedDocument |
     async () => {
       const fileType = detectFileType(file.name);
       if (!fileType) {
-        reportError(new Error(`Unsupported file type: ${file.name}`), undefined, { context: "fileLoader.loadDocumentFromFile" });
+        reportError(new Error(t("errors.unsupportedType", { name: file.name })), undefined, { context: "fileLoader.loadDocumentFromFile" });
         return null;
       }
       const parser = getParserOrReport(fileType, "fileLoader.loadDocumentFromFile");
@@ -124,7 +125,7 @@ export async function loadDocumentFromFile(file: File): Promise<ParsedDocument |
         language: "en",
       }));
     },
-    "Could not read the dropped file.",
+    t("errors.readDropped"),
     "fileLoader.loadDocumentFromFile",
   );
 }
@@ -135,9 +136,9 @@ async function loadFromTauriDialog(): Promise<ParsedDocument | null> {
     filters: [
       // Tauri uses the first filter as the dialog default; keep an
       // "All supported files" entry first so users see both formats.
-      { name: "All supported files", extensions: ["txt", "pdf"] },
-      { name: "PDF files", extensions: ["pdf"] },
-      { name: "Text files", extensions: ["txt"] },
+      { name: t("picker.allSupported"), extensions: ["txt", "pdf"] },
+      { name: t("picker.pdf"), extensions: ["pdf"] },
+      { name: t("picker.txt"), extensions: ["txt"] },
     ],
   });
   if (!selected) return null;
@@ -147,7 +148,7 @@ async function loadFromTauriDialog(): Promise<ParsedDocument | null> {
   const filename = filePath.split("/").pop() ?? filePath;
   const fileType = detectFileType(filename);
   if (!fileType) {
-    reportError(new Error(`Unsupported file type: ${filename}`), undefined, { context: "fileLoader.loadFromTauriDialog" });
+    reportError(new Error(t("errors.unsupportedType", { name: filename })), undefined, { context: "fileLoader.loadFromTauriDialog" });
     return null;
   }
 

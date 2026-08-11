@@ -20,7 +20,7 @@ const notifications = useNotificationsStore();
       <span class="flex-1">{{ n.message }}</span>
       <button
         class="text-zeno-muted hover:text-zeno-text"
-        aria-label="Dismiss notification"
+        :aria-label="$t('notifications.dismiss')"
         @click="notifications.dismiss(n.id)"
       >
         ✕

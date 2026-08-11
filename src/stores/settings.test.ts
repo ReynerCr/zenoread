@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
+import { i18n } from "../i18n";
 import {
   DEFAULT_USER_SETTINGS,
 } from "../db/schemas/userSettings.schema";
@@ -62,6 +63,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  i18n.global.locale.value = "en";
 });
 
 describe("settings store — reset path (DOC24 regression)", () => {
@@ -118,5 +120,17 @@ describe("settings store — normal update path", () => {
     const arg = mockPatch.mock.calls[0][0] as Record<string, unknown>;
     expect(arg.wpm_default).toBe(420);
     expect(arg.font_size).toBe(60);
+  });
+
+  it("syncs the i18n locale when the language setting changes", async () => {
+    mockSettingsDoc();
+    const store = useSettingsStore();
+    await store.init();
+
+    store.update({ language: "es" });
+    expect(i18n.global.locale.value).toBe("es");
+
+    store.update({ language: "en" });
+    expect(i18n.global.locale.value).toBe("en");
   });
 });

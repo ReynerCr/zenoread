@@ -30,7 +30,7 @@ function onPageInput(event: Event) {
   >
     <button
       class="rounded-md border border-zeno-border px-2 py-1 text-xs text-zeno-text hover:bg-zeno-surface disabled:opacity-30 disabled:cursor-not-allowed"
-      aria-label="Previous page"
+      :aria-label="$t('reader.prevPage')"
       :disabled="currentPage <= 1"
       @click="emit('prev-page')"
     >
@@ -42,13 +42,13 @@ function onPageInput(event: Event) {
       :max="totalPages"
       :value="currentPage"
       class="w-12 rounded-md border border-zeno-border bg-zeno-bg px-2 py-1 text-center text-xs text-zeno-text tabular-nums"
-      aria-label="Page number"
+      :aria-label="$t('reader.pageNumber')"
       @change="onPageInput"
     >
     <span class="text-xs text-zeno-muted tabular-nums">/ {{ totalPages }}</span>
     <button
       class="rounded-md border border-zeno-border px-2 py-1 text-xs text-zeno-text hover:bg-zeno-surface disabled:opacity-30 disabled:cursor-not-allowed"
-      aria-label="Next page"
+      :aria-label="$t('reader.nextPage')"
       :disabled="currentPage >= totalPages"
       @click="emit('next-page')"
     >
@@ -59,22 +59,22 @@ function onPageInput(event: Event) {
   <div class="flex items-center gap-2">
     <button
       class="rounded-md border border-zeno-border px-3 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface"
-      aria-label="Previous block"
+      :aria-label="$t('reader.prevBlock')"
       @click="emit('prev-block')"
     >
       ◀
     </button>
     <button
       class="rounded-md border border-zeno-border px-4 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface disabled:opacity-30 disabled:cursor-not-allowed"
-      :aria-label="isPlaying ? 'Pause' : 'Play'"
+      :aria-label="isPlaying ? $t('reader.pause') : $t('reader.play')"
       :disabled="isFinished"
       @click="emit('toggle-play-pause')"
     >
-      {{ isPlaying ? "Pause" : isPaused ? "Resume" : "Play" }}
+      {{ isPlaying ? $t('reader.pause') : isPaused ? $t('reader.resume') : $t('reader.play') }}
     </button>
     <button
       class="rounded-md border border-zeno-border px-3 py-1.5 text-sm text-zeno-text hover:bg-zeno-surface"
-      aria-label="Next block"
+      :aria-label="$t('reader.nextBlock')"
       @click="emit('next-block')"
     >
       ▶

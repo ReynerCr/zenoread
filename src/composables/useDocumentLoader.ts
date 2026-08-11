@@ -1,4 +1,5 @@
 import { onBeforeUnmount, onMounted, ref, shallowRef, watch, type Ref } from "vue";
+import { t } from "../i18n";
 import { loadDocumentFromDialog, loadDocumentFromPath } from "../documents/fileLoader";
 import { TxtStreamer } from "../documents/txtStreamer";
 import type { ParsedDocument } from "../documents/types";
@@ -9,11 +10,6 @@ import { useSettingsStore } from "../stores/settings";
 import { isTauri } from "../utils/platform";
 import { useDragDrop } from "./useDragDrop";
 import { usePlayback, type SegmentConfig } from "./usePlayback";
-
-const SAMPLE_TEXT =
-  "Welcome to ZenoRead. This is a speed-reading app. " +
-  "It uses RSVP to show words quickly. " +
-  "Press play to begin, space to pause, and arrows to skip.";
 
 /**
  * Owns document loading and progress persistence for the reading area.
@@ -48,7 +44,7 @@ export function useDocumentLoader(
     loadedDocument.value = null;
     savedDocId.value = null;
     void playback.attachStreamer(
-      new TxtStreamer(SAMPLE_TEXT),
+      new TxtStreamer(t("reader.sampleText")),
       currentSegmentConfig(),
       settings.settings.wpm_default,
       settings.settings.pause_multipliers,

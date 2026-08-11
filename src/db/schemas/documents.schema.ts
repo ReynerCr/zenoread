@@ -19,7 +19,7 @@ export interface DocumentDocType {
   /** ISO-8601 timestamp. */
   modified_date: string;
   file_type: FileType;
-  /** BCP-47 language tag (e.g. "en", "es") used by the language-aware parser. */
+  /** BCP-47 language tag (e.g. "en", "es"). Currently unused: always "en", language-aware parsing was removed. */
   language: string;
 }
 

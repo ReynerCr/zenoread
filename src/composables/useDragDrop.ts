@@ -4,6 +4,7 @@ import type { ParsedDocument } from "../documents/types";
 import { loadDocumentFromPath, loadDocumentFromFile } from "../documents/fileLoader";
 import { detectFileType } from "../documents/fileUtils";
 import { reportError } from "../utils/errors";
+import { t } from "../i18n";
 
 /**
  * Provides drag-and-drop file loading. On Tauri, uses the webview's
@@ -43,7 +44,7 @@ export function useDragDrop(
   async function handleTauriDrop(filePath: string) {
     const fileType = detectFileType(filePath);
     if (!fileType) {
-      reportError(new Error(`Unsupported file type: ${filePath}`), undefined, { context: "useDragDrop.handleTauriDrop" });
+      reportError(new Error(t("errors.unsupportedType", { name: filePath })), undefined, { context: "useDragDrop.handleTauriDrop" });
       return;
     }
     const doc = await loadDocumentFromPath(filePath, fileType, "en");

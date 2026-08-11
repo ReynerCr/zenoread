@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { storeToRefs } from "pinia";
 import { useDocumentsStore } from "../../stores/documents";
 import { useProgressStore } from "../../stores/progress";
@@ -10,6 +11,7 @@ const emit = defineEmits<{ (e: "close"): void; (e: "open-doc", docId: string): v
 
 const documentsStore = useDocumentsStore();
 const progressStore = useProgressStore();
+const { t, locale } = useI18n();
 const { isLoading } = storeToRefs(documentsStore);
 
 onMounted(() => {
@@ -43,11 +45,11 @@ function formatRelativeDate(iso: string): string {
   const diffHr = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHr / 24);
 
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return date.toLocaleDateString();
+  if (diffMin < 1) return t("recent.justNow");
+  if (diffMin < 60) return t("recent.minutesAgo", { n: diffMin });
+  if (diffHr < 24) return t("recent.hoursAgo", { n: diffHr });
+  if (diffDay < 7) return t("recent.daysAgo", { n: diffDay });
+  return date.toLocaleDateString(locale.value);
 }
 
 function handleOpenDoc(docId: string) {
@@ -60,16 +62,16 @@ function handleOpenDoc(docId: string) {
   <aside
     class="flex h-full flex-col border-r border-zeno-border bg-zeno-surface transition-all duration-200 overflow-hidden"
     :class="open ? 'w-64' : 'w-0'"
-    aria-label="Recent documents"
+    :aria-label="$t('recent.aria')"
   >
     <div class="flex w-64 flex-col gap-3 p-4">
       <header class="flex items-center justify-between">
         <h2 class="text-sm font-semibold uppercase tracking-wider text-zeno-muted">
-          Recent
+          {{ $t('recent.title') }}
         </h2>
         <button
           class="rounded-md px-2 py-1 text-zeno-muted hover:text-zeno-text"
-          aria-label="Close recent documents"
+          :aria-label="$t('recent.close')"
           @click="emit('close')"
         >
           ✕
@@ -78,13 +80,13 @@ function handleOpenDoc(docId: string) {
 
       <template v-if="!isTauri()">
         <p class="text-xs text-zeno-muted">
-          Recent documents are only available in the desktop app.
+          {{ $t('recent.desktopOnly') }}
         </p>
       </template>
 
       <template v-else-if="sortedDocs.length === 0">
         <p class="text-xs text-zeno-muted">
-          No documents yet. Open a file to get started.
+          {{ $t('recent.empty') }}
         </p>
       </template>
 
@@ -98,13 +100,13 @@ function handleOpenDoc(docId: string) {
         >
           <button
             class="flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left hover:bg-zeno-bg disabled:opacity-50 disabled:cursor-not-allowed"
-            :aria-label="`Open ${doc.title}`"
+            :aria-label="$t('recent.open', { title: doc.title })"
             :disabled="isLoading"
             @click="handleOpenDoc(doc.id)"
           >
             <span class="truncate text-xs font-medium text-zeno-text">{{ doc.title }}</span>
             <span class="text-[10px] text-zeno-muted">
-              {{ doc.section_count > 1 ? `${doc.section_count} pages` : "1 section" }}<template v-if="completionOf(doc.id) !== null"> · {{ completionOf(doc.id) }}%</template> · {{ formatRelativeDate(doc.modified_date) }}
+              {{ doc.section_count > 1 ? $t('recent.pages', { n: doc.section_count }) : $t('recent.section') }}<template v-if="completionOf(doc.id) !== null"> · {{ completionOf(doc.id) }}%</template> · {{ formatRelativeDate(doc.modified_date) }}
             </span>
           </button>
         </li>

@@ -13,6 +13,7 @@ import {
   DEFAULT_USER_SETTINGS,
   type UserSettingsDocType,
 } from "./schemas/userSettings.schema";
+import { detectLanguage } from "../i18n";
 import {
   documentsSchema,
   type DocumentDocType,
@@ -69,6 +70,7 @@ async function createDatabase(): Promise<ZenoDatabase> {
       migrationStrategies: {
         1: (doc) => doc,
         2: (doc) => ({ ...doc, show_block_counter: false }),
+        3: (doc) => ({ ...doc, language: "en" }),
       },
     },
     documents: {
@@ -142,5 +144,5 @@ export async function resetDatabase(): Promise<void> {
   }
 
   // Re-seed default settings so the app remains usable immediately.
-  await db.user_settings.insert({ ...DEFAULT_USER_SETTINGS });
+  await db.user_settings.insert({ ...DEFAULT_USER_SETTINGS, language: detectLanguage() });
 }

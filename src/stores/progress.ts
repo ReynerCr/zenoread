@@ -5,6 +5,7 @@ import { getDatabase } from "../db/database";
 import type { ReadingProgressDocType } from "../db/schemas/readingProgress.schema";
 import { reportError } from "../utils/errors";
 import { completionPercentage } from "../utils/progress";
+import { t } from "../i18n";
 
 export interface ProgressPosition {
   sectionIndex: number;
@@ -44,7 +45,7 @@ export const useProgressStore = defineStore("progress", () => {
       }
       return { sectionIndex: 0, blockIndex: 0 };
     } catch (error) {
-      reportError(error, "Could not load your reading progress.", { context: "progress.loadProgress" });
+      reportError(error, t("errors.progress.load"), { context: "progress.loadProgress" });
       return { sectionIndex: 0, blockIndex: 0 };
     }
   }
@@ -91,7 +92,7 @@ export const useProgressStore = defineStore("progress", () => {
         await db.reading_progress.insert({ ...record });
       }
     } catch (error) {
-      reportError(error, "Could not save your reading progress.", { context: "progress.saveProgress" });
+      reportError(error, t("errors.progress.save"), { context: "progress.saveProgress" });
     }
   }
 
@@ -114,7 +115,7 @@ export const useProgressStore = defineStore("progress", () => {
       }
       progressByDocId.value = map;
     } catch (error) {
-      reportError(error, "Could not load reading progress.", { context: "progress.loadAllProgress" });
+      reportError(error, t("errors.progress.loadAll"), { context: "progress.loadAllProgress" });
     }
   }
 

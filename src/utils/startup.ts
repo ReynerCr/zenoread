@@ -1,6 +1,7 @@
 import { getDatabase } from "../db/database";
 import { reportError } from "../utils/errors";
 import { initLogger, closeLogger } from "../utils/logger";
+import { t } from "../i18n";
 
 export interface StartupResult {
   dbOk: boolean;
@@ -18,7 +19,7 @@ export async function runStartup(): Promise<StartupResult> {
     await getDatabase();
     return { dbOk: true };
   } catch (error) {
-    reportError(error, "Could not open the local database.", { context: "database.init" });
+    reportError(error, t("errors.database"), { context: "database.init" });
     return { dbOk: false };
   }
 }
