@@ -17,6 +17,8 @@ export interface PauseMultipliers {
 
 export type ThemeName = "light" | "dark";
 
+export type LanguageName = "en" | "es";
+
 export interface UserSettingsDocType {
   /** Singleton primary key. Always `SETTINGS_SINGLETON_ID`. */
   id: string;
@@ -31,6 +33,8 @@ export interface UserSettingsDocType {
   split_on_sentence_end: boolean;
   /** When true, shows the block counter alongside the page/paragraph indicator. */
   show_block_counter: boolean;
+  /** UI language (English / Spanish). */
+  language: LanguageName;
 }
 
 /** There is only ever one settings document; this is its fixed primary key. */
@@ -57,11 +61,12 @@ export const DEFAULT_USER_SETTINGS: UserSettingsDocType = {
   font_family: "system-ui",
   split_on_sentence_end: true,
   show_block_counter: false,
+  language: "en",
 };
 
 export const userSettingsSchema: RxJsonSchema<UserSettingsDocType> = {
   title: "user settings schema",
-  version: 2,
+  version: 3,
   primaryKey: "id",
   type: "object",
   properties: {
@@ -95,6 +100,7 @@ export const userSettingsSchema: RxJsonSchema<UserSettingsDocType> = {
     font_family: { type: "string", maxLength: 100 },
     split_on_sentence_end: { type: "boolean" },
     show_block_counter: { type: "boolean" },
+    language: { type: "string", maxLength: 16, enum: ["en", "es"] },
   },
   required: [
     "id",
@@ -107,5 +113,6 @@ export const userSettingsSchema: RxJsonSchema<UserSettingsDocType> = {
     "font_family",
     "split_on_sentence_end",
     "show_block_counter",
+    "language",
   ],
 };

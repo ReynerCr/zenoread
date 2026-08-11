@@ -7,9 +7,11 @@ export type AppLocale = "en" | "es";
 /** Shape of the source-of-truth catalog; keys are validated against it. */
 export type MessageSchema = typeof en;
 
-const i18n = createI18n<[MessageSchema], AppLocale>({
+const i18n = createI18n<[MessageSchema], AppLocale, false>({
   legacy: false,
-  locale: "en",
+  // First-run users render in their OS language immediately; settings.init()
+  // overrides with the saved preference once the settings doc loads.
+  locale: detectLanguage(),
   fallbackLocale: "en",
   messages: { en, es },
 });

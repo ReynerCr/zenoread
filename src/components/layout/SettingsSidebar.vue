@@ -11,6 +11,7 @@ import {
   type PauseMultipliers,
 } from "../../db/schemas/userSettings.schema";
 import SliderInput from "../ui/SliderInput.vue";
+import { detectLanguage } from "../../i18n";
 import { isTauri } from "../../utils/platform";
 
 defineProps<{ open: boolean }>();
@@ -80,7 +81,7 @@ async function resetAllSettings() {
   if (!(await confirmDialog(t("settings.confirmResetDefaults")))) return;
   const { id, ...defaults } = DEFAULT_USER_SETTINGS;
   void id;
-  void settings.update(defaults);
+  void settings.update({ ...defaults, language: detectLanguage() });
 }
 
 async function resetAppData() {
@@ -181,6 +182,16 @@ async function resetAppData() {
           @click="settings.toggleTheme()"
         >
           {{ settings.theme === "dark" ? $t('settings.theme.dark') : $t('settings.theme.light') }}
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-zeno-muted">{{ $t('settings.language') }}</span>
+        <button
+          class="rounded-md border border-zeno-border px-3 py-1 text-sm text-zeno-text hover:bg-zeno-bg"
+          @click="settings.update({ language: settings.settings.language === 'en' ? 'es' : 'en' })"
+        >
+          {{ settings.settings.language === "en" ? $t('settings.language.en') : $t('settings.language.es') }}
         </button>
       </div>
 

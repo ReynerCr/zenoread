@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
 
 import { getDatabase } from "../db/database";
+import { detectLanguage, i18n } from "../i18n";
 import {
   DEFAULT_USER_SETTINGS,
   SETTINGS_SINGLETON_ID,
@@ -17,7 +18,12 @@ const SAVE_DEBOUNCE_MS = 500;
  * reflects presentation settings (theme, font) onto the document element.
  */
 export const useSettingsStore = defineStore("settings", () => {
-  const settings = ref<UserSettingsDocType>({ ...DEFAULT_USER_SETTINGS });
+  // Pre-seeded with the detected language so the first render already matches
+  // the OS locale; settings.init() replaces this placeholder with the doc.
+  const settings = ref<UserSettingsDocType>({
+    ...DEFAULT_USER_SETTINGS,
+    language: detectLanguage(),
+  });
   const loaded = ref(false);
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -33,7 +39,10 @@ export const useSettingsStore = defineStore("settings", () => {
         .exec();
 
       if (!doc) {
-        doc = await db.user_settings.insert({ ...DEFAULT_USER_SETTINGS });
+        doc = await db.user_settings.insert({
+          ...DEFAULT_USER_SETTINGS,
+          language: detectLanguage(),
+        });
       }
 
       settings.value = doc.toJSON() as UserSettingsDocType;
@@ -47,7 +56,7 @@ export const useSettingsStore = defineStore("settings", () => {
     } catch (error) {
       reportError(error, t("errors.settings.load"), { context: "settings.init" });
       // Fall back to defaults so the app remains usable.
-      settings.value = { ...DEFAULT_USER_SETTINGS };
+      settings.value = { ...DEFAULT_USER_SETTINGS, language: detectLanguage() };
       loaded.value = true;
     }
   }
@@ -99,6 +108,18 @@ export const useSettingsStore = defineStore("settings", () => {
       document.documentElement.setAttribute("data-theme", value);
     },
     { immediate: true },
+  );
+
+  // Keep the UI language in sync with the persisted setting on every write
+  // path: init, update(), and external changes via the document subscription.
+  // flush: 'sync' keeps settings.value.language and the i18n locale consistent
+  // without waiting for the scheduler (and makes the behavior testable).
+  watch(
+    () => settings.value.language,
+    (value) => {
+      i18n.global.locale.value = value;
+    },
+    { immediate: true, flush: "sync" },
   );
 
   return { settings, loaded, theme, init, update, toggleTheme };

@@ -40,6 +40,7 @@ async function mountReader() {
     font_family: "system-ui",
     split_on_sentence_end: true,
     show_block_counter: true,
+    language: "en",
   };
   const wrapper = mount(ReadingContainer, {
     global: { plugins: [pinia, i18n] },
