@@ -8,6 +8,7 @@ import {
   type UserSettingsDocType,
 } from "../db/schemas/userSettings.schema";
 import { reportError } from "../utils/errors";
+import { t } from "../i18n";
 
 const SAVE_DEBOUNCE_MS = 500;
 
@@ -44,7 +45,7 @@ export const useSettingsStore = defineStore("settings", () => {
 
       loaded.value = true;
     } catch (error) {
-      reportError(error, "Could not load your settings. Using defaults.", { context: "settings.init" });
+      reportError(error, t("errors.settings.load"), { context: "settings.init" });
       // Fall back to defaults so the app remains usable.
       settings.value = { ...DEFAULT_USER_SETTINGS };
       loaded.value = true;
@@ -67,7 +68,7 @@ export const useSettingsStore = defineStore("settings", () => {
         await db.user_settings.insert({ ...plainSettings });
       }
     } catch (error) {
-      reportError(error, "Could not save your settings.", { context: "settings.flushSave" });
+      reportError(error, t("errors.settings.save"), { context: "settings.flushSave" });
     }
   }
 

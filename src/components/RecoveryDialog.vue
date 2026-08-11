@@ -27,20 +27,18 @@ function handleContinue() {
     v-if="props.show"
     class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
     role="alertdialog"
-    aria-label="Storage problem"
+    :aria-label="$t('recovery.aria')"
     data-testid="recovery-dialog"
   >
     <div class="mx-4 max-w-md rounded-lg border border-zeno-border bg-zeno-surface p-6 shadow-xl">
       <h2 class="mb-3 text-lg font-semibold text-zeno-text">
-        Storage problem detected
+        {{ $t('recovery.title') }}
       </h2>
       <p class="mb-4 text-sm text-zeno-muted">
-        ZenoRead couldn't access its local database. This can happen after a corrupted update or
-        a browser data clear. Your reading data may be inaccessible.
+        {{ $t('recovery.body1') }}
       </p>
       <p class="mb-5 text-sm text-zeno-muted">
-        You can reset all app data to start fresh, or continue without resetting. If you continue,
-        some features may not work correctly until the issue is resolved.
+        {{ $t('recovery.body2') }}
       </p>
       <div class="flex justify-end gap-3">
         <button
@@ -48,14 +46,14 @@ function handleContinue() {
           :disabled="resetting"
           @click="handleContinue"
         >
-          Continue without resetting
+          {{ $t('recovery.continue') }}
         </button>
         <button
           class="rounded-md bg-red-500/80 px-4 py-2 text-sm text-white hover:bg-red-500"
           :disabled="resetting"
           @click="handleReset"
         >
-          {{ resetting ? "Resetting..." : "Reset all data" }}
+          {{ resetting ? $t('recovery.resetting') : $t('recovery.reset') }}
         </button>
       </div>
     </div>

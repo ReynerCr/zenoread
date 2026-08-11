@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import ReadingContainer from "./ReadingContainer.vue";
+import { i18n } from "../../i18n";
 import { useSettingsStore } from "../../stores/settings";
 import { useDocumentsStore } from "../../stores/documents";
 import { useProgressStore } from "../../stores/progress";
@@ -41,7 +42,7 @@ async function mountReader() {
     show_block_counter: true,
   };
   const wrapper = mount(ReadingContainer, {
-    global: { plugins: [pinia] },
+    global: { plugins: [pinia, i18n] },
   });
   await flushPromises();
   return { wrapper, settings, pinia };

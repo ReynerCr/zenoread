@@ -5,6 +5,7 @@ import { getDatabase } from "../db/database";
 import type { DocumentDocType } from "../db/schemas/documents.schema";
 import type { ParsedDocument } from "../documents/types";
 import { reportError } from "../utils/errors";
+import { t } from "../i18n";
 
 /**
  * Manages the documents collection in RxDB: persisting loaded files, listing
@@ -41,7 +42,7 @@ export const useDocumentsStore = defineStore("documents", () => {
 
       loaded.value = true;
     } catch (error) {
-      reportError(error, "Could not load your document library.", { context: "documents.init" });
+      reportError(error, t("errors.documents.load"), { context: "documents.init" });
       loaded.value = true;
     }
   }
@@ -87,7 +88,7 @@ export const useDocumentsStore = defineStore("documents", () => {
       currentDocument.value = doc;
       return doc;
     } catch (error) {
-      reportError(error, "Could not save the document.", { context: "documents.saveDocument" });
+      reportError(error, t("errors.documents.save"), { context: "documents.saveDocument" });
       return null;
     }
   }
@@ -98,7 +99,7 @@ export const useDocumentsStore = defineStore("documents", () => {
       const doc = await db.documents.findOne({ selector: { id } }).exec();
       return doc ? (doc.toJSON() as DocumentDocType) : null;
     } catch (error) {
-      reportError(error, "Could not retrieve the document.", { context: "documents.getDocument" });
+      reportError(error, t("errors.documents.retrieve"), { context: "documents.getDocument" });
       return null;
     }
   }

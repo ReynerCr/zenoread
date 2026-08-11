@@ -30,18 +30,18 @@ function handleOpenDoc(docId: string) {
         <span class="text-sm font-semibold tracking-wide">ZenoRead</span>
         <button
           class="rounded-md px-2 py-1 text-xs text-zeno-muted hover:bg-zeno-bg hover:text-zeno-text"
-          aria-label="Toggle recent documents"
+          :aria-label="$t('app.toggleRecent')"
           @click="toggleRecent"
         >
-          📂 Recent
+          📂 {{ $t('app.recent') }}
         </button>
       </div>
       <button
         class="rounded-md px-3 py-1 text-sm text-zeno-muted hover:bg-zeno-bg hover:text-zeno-text"
-        aria-label="Toggle settings"
+        :aria-label="$t('app.toggleSettings')"
         @click="toggleSettings"
       >
-        ☰ Settings
+        ☰ {{ $t('app.settings') }}
       </button>
     </header>
 

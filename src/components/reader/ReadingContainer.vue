@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, useTemplateRef, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { storeToRefs } from "pinia";
 import { useDocumentsStore } from "../../stores/documents";
 import { useSettingsStore } from "../../stores/settings";
@@ -12,6 +13,7 @@ import { completionPercentage } from "../../utils/progress";
 const settings = useSettingsStore();
 const playback = usePlayback();
 const documentsStore = useDocumentsStore();
+const { t } = useI18n();
 const { isLoading } = storeToRefs(documentsStore);
 
 const dropZoneRef = useTemplateRef<HTMLElement>("dropZoneRef");
@@ -56,7 +58,7 @@ function countParagraphBreaks(blocks: { pauseType: string | null }[], start: num
 
 const progressLabel = computed(() => {
   if (playback.blocks.value.length === 0) {
-    if (hasSections.value) return `Page ${currentPage.value} · no text`;
+    if (hasSections.value) return t("reader.progress.empty", { page: currentPage.value });
     return "";
   }
   const idx = playback.currentIndex.value;
@@ -66,17 +68,20 @@ const progressLabel = computed(() => {
   if (hasSections.value) {
     const page = currentPage.value;
     const paragraphInPage = 1 + countParagraphBreaks(blocks, 0, idx);
-    return `Page ${page} · ¶ ${paragraphInPage}${suffix}`;
+    return t("reader.progress.page", { page, paragraph: paragraphInPage }) + suffix;
   }
 
   const currentParagraph = 1 + countParagraphBreaks(blocks, 0, idx);
   const totalParagraphs = 1 + blocks.filter((b) => b.pauseType === "paragraph").length;
-  return `¶ ${currentParagraph} / ${totalParagraphs}${suffix}`;
+  return t("reader.progress.paragraph", { current: currentParagraph, total: totalParagraphs }) + suffix;
 });
 
 const blockCounterLabel = computed(() => {
   if (playback.totalBlocks.value === 0) return "";
-  return `block ${playback.currentIndex.value + 1} / ${playback.totalBlocks.value}`;
+  return t("reader.blockCounter", {
+    current: playback.currentIndex.value + 1,
+    total: playback.totalBlocks.value,
+  });
 });
 
 const completionLabel = computed(() => {
@@ -94,7 +99,7 @@ const isPaused = computed(() => playback.state.value === "pause");
 const isFinished = computed(() => playback.state.value === "finished");
 const hasDocument = computed(() => loadedDocument.value !== null);
 const isEmptyPage = computed(() => playback.isEmptySection.value && hasSections.value);
-const emptyPageLabel = computed(() => `Page ${currentPage.value} has no text content`);
+const emptyPageLabel = computed(() => t("reader.emptyPage", { page: currentPage.value }));
 
 function togglePlayPause() {
   if (isFinished.value) return;
@@ -144,7 +149,7 @@ defineExpose({ openFromLibrary });
   <section
     ref="dropZoneRef"
     class="flex h-full w-full flex-col items-center justify-center bg-zeno-bg px-8 relative"
-    aria-label="Reading area"
+    :aria-label="$t('reader.area')"
     :data-save-state="saveState"
   >
     <!-- Drag-and-drop overlay -->
@@ -153,7 +158,7 @@ defineExpose({ openFromLibrary });
       class="absolute inset-0 z-10 flex items-center justify-center bg-zeno-accent/10 border-2 border-dashed border-zeno-accent rounded-lg"
       data-testid="drop-overlay"
     >
-      <span class="text-sm font-medium text-zeno-accent">Drop file to open</span>
+      <span class="text-sm font-medium text-zeno-accent">{{ $t('reader.dropFile') }}</span>
     </div>
 
     <!-- Centered word display -->
@@ -164,7 +169,7 @@ defineExpose({ openFromLibrary });
         class="flex flex-col items-center gap-2"
       >
         <div class="h-6 w-6 animate-spin rounded-full border-2 border-zeno-border border-t-zeno-accent" />
-        <span class="text-sm text-zeno-muted">Loading...</span>
+        <span class="text-sm text-zeno-muted">{{ $t('reader.loading') }}</span>
       </div>
       <p
         v-else-if="displayText"
@@ -184,7 +189,7 @@ defineExpose({ openFromLibrary });
         v-else
         class="text-sm text-zeno-muted"
       >
-        Load a document to start reading.
+        {{ $t('reader.loadPrompt') }}
       </p>
     </div>
 
@@ -199,11 +204,11 @@ defineExpose({ openFromLibrary });
         </span>
         <button
           class="rounded-md border border-zeno-border px-3 py-1 text-xs text-zeno-muted hover:text-zeno-text disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Open file"
+          :aria-label="$t('reader.openFile')"
           :disabled="isLoading"
           @click="openFile"
         >
-          Open file
+          {{ $t('reader.openFile') }}
         </button>
       </div>
 

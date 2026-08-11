@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import SettingsSidebar from "./SettingsSidebar.vue";
+import { i18n } from "../../i18n";
 import { useSettingsStore } from "../../stores/settings";
 import { DEFAULT_USER_SETTINGS } from "../../db/schemas/userSettings.schema";
 
@@ -18,7 +19,7 @@ describe("SettingsSidebar", () => {
 
     const wrapper = mount(SettingsSidebar, {
       props: { open: true },
-      global: { plugins: [pinia] },
+      global: { plugins: [pinia, i18n] },
     });
 
     const select = wrapper.find("select#font-family");
