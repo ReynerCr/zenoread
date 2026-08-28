@@ -5118,6 +5118,16 @@ dependencies = [
  "tauri-plugin-fs",
  "tauri-plugin-log",
  "tauri-plugin-opener",
+ "zenoread-android-fs",
+]
+
+[[package]]
+name = "zenoread-android-fs"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tauri",
+ "tauri-plugin",
 ]
 
 [[package]]

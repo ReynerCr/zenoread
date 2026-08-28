@@ -5,6 +5,9 @@ description = "A local-first RSVP speed-reading application"
 authors = ["you"]
 edition = "2024"
 
+[workspace]
+members = ["plugins/zenoread-android-fs"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
@@ -23,6 +26,7 @@ tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-log = "2"
+zenoread-android-fs = { path = "plugins/zenoread-android-fs" }
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
