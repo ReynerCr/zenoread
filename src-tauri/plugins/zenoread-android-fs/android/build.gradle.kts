@@ -22,4 +22,5 @@ android {
 
 dependencies {
     implementation(project(":tauri-android"))
+    implementation("androidx.activity:activity-ktx:1.10.1")
 }

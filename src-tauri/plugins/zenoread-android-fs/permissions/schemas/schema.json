@@ -317,6 +317,12 @@
           "type": "string",
           "const": "deny-pick-file",
           "markdownDescription": "Denies the pick_file command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the Android SAF picker commands.\n\n#### Granted Permissions\n\n- `allow-pick-file`\n- `allow-check-persisted`\n\n#### This default permission set includes:\n\n- `allow-pick-file`\n- `allow-check-persisted`",
+          "type": "string",
+          "const": "default",
+          "markdownDescription": "Enables the Android SAF picker commands.\n\n#### Granted Permissions\n\n- `allow-pick-file`\n- `allow-check-persisted`\n\n#### This default permission set includes:\n\n- `allow-pick-file`\n- `allow-check-persisted`"
         }
       ]
     }

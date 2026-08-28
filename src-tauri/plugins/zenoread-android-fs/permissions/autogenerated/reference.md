@@ -1,3 +1,17 @@
+## Default Permission
+
+Enables the Android SAF picker commands.
+
+#### Granted Permissions
+
+- `allow-pick-file`
+- `allow-check-persisted`
+
+#### This default permission set includes the following:
+
+- `allow-pick-file`
+- `allow-check-persisted`
+
 ## Permission Table
 
 <table>
