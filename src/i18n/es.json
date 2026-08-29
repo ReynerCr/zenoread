@@ -82,6 +82,7 @@
   "errors.fileEmpty": "El archivo parece estar vacío.",
   "errors.loadFile": "No se pudo cargar el archivo.",
   "errors.readDisk": "No se pudo leer el archivo del disco.",
+  "errors.fileNotAccessible": "Este archivo ya no es accesible. Selecciónalo de nuevo para seguir leyendo.",
   "errors.readDropped": "No se pudo leer el archivo soltado.",
   "errors.noParser": "Aún no hay un analizador para archivos .{type}.",
   "errors.unsupportedType": "Tipo de archivo no compatible: {name}",

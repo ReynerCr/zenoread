@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { validateContent, loadDocumentFromDialog } from "./fileLoader";
+import { validateContent, loadDocumentFromDialog, loadDocumentFromPath } from "./fileLoader";
 import { isAndroid } from "../utils/platform";
 import { AppError } from "../utils/errors";
 import { TxtStreamer } from "./txtStreamer";
@@ -138,6 +138,53 @@ describe("loadDocumentFromDialog on Android", () => {
 
     await expect(loadDocumentFromDialog()).resolves.toBeNull();
     expect(mockReadTextFile).not.toHaveBeenCalled();
+  });
+});
+
+describe("loadDocumentFromPath on Android", () => {
+  beforeEach(() => {
+    mockInvoke.mockReset();
+    mockReadFile.mockReset();
+    mockReadTextFile.mockReset();
+    vi.mocked(isAndroid).mockReturnValue(true);
+  });
+
+  afterEach(() => vi.mocked(isAndroid).mockReturnValue(false));
+
+  it("keeps the stored title for content uris", async () => {
+    mockInvoke.mockResolvedValue(true);
+    mockReadTextFile.mockResolvedValue("Hello world.");
+
+    const doc = await loadDocumentFromPath(
+      "content://provider/document/raw%3A%2Fstorage%2Fhello.txt",
+      "txt",
+      "en",
+      "Stored title",
+    );
+
+    expect(mockInvoke).toHaveBeenCalledWith("plugin:zenoread-android-fs|check_persisted", {
+      uri: "content://provider/document/raw%3A%2Fstorage%2Fhello.txt",
+    });
+    expect(doc?.title).toBe("Stored title");
+  });
+
+  it("reports when the persisted grant is gone", async () => {
+    mockInvoke.mockResolvedValue(false);
+
+    await expect(
+      loadDocumentFromPath("content://provider/document/1234", "txt", "en", "Stored title"),
+    ).resolves.toBeNull();
+    expect(mockReadTextFile).not.toHaveBeenCalled();
+  });
+
+  it("still derives the title from plain paths on desktop", async () => {
+    vi.mocked(isAndroid).mockReturnValue(false);
+    mockReadTextFile.mockResolvedValue("Hello world.");
+
+    const doc = await loadDocumentFromPath("/home/user/hello.txt", "txt", "en", "Stored title");
+
+    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(doc?.title).toBe("hello");
   });
 });
 

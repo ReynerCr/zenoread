@@ -80,20 +80,38 @@ export async function loadDocumentFromDialog(): Promise<ParsedDocument | null> {
  * Reads a file from disk by its path and parses it. Used when re-opening a
  * document from the library or when a file is dropped onto the window in
  * Tauri mode (where we get a path, not a File object).
+ *
+ * On Android the path is a content URI: the stored DB title is authoritative
+ * (the raw URI's last segment is an encoded document ID, not a name), and the
+ * read requires a persisted permission grant, which is pre-checked.
  */
 export async function loadDocumentFromPath(
   filePath: string,
   fileType: FileType,
   language: string,
+  storedTitle?: string,
 ): Promise<ParsedDocument | null> {
   return withLoaderError(
     async () => {
+      if (isAndroid() && filePath.startsWith("content://")) {
+        const persisted = await invoke<boolean>("plugin:zenoread-android-fs|check_persisted", {
+          uri: filePath,
+        });
+        if (!persisted) {
+          throw new AppError(t("errors.fileNotAccessible"));
+        }
+      }
+
       const parser = getParserOrReport(fileType, "fileLoader.loadDocumentFromPath");
       if (!parser) return null;
       const raw = await readFileFromPath(filePath, fileType);
       const filename = filePath.split("/").pop() ?? filePath;
+      const title =
+        filePath.startsWith("content://") && storedTitle
+          ? storedTitle
+          : titleFromFilename(filename);
       return validateContent(await parser.parse(raw, {
-        title: titleFromFilename(filename),
+        title,
         file_path: filePath,
         file_type: fileType,
         language,
