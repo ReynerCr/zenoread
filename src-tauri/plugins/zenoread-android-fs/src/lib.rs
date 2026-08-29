@@ -25,6 +25,7 @@ struct PickFilePayload<'a> {
 struct PickFileResponse {
     uri: Option<String>,
     name: Option<String>,
+    mime: Option<String>,
 }
 
 #[cfg(target_os = "android")]

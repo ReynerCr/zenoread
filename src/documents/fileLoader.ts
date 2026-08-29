@@ -1,12 +1,13 @@
 import { open } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
 import { readTextFile, readFile } from "@tauri-apps/plugin-fs";
 import { parserRegistry } from "./parserRegistry";
 import type { ParsedDocument } from "./types";
 import type { FileType } from "../db/schemas/documents.schema";
-import { isTauri } from "../utils/platform";
+import { isTauri, isAndroid } from "../utils/platform";
 import { reportError, AppError } from "../utils/errors";
 import { t } from "../i18n";
-import { detectFileType, isBinaryType, titleFromFilename } from "./fileUtils";
+import { detectFileType, isBinaryType, titleFromFilename, fileTypeFromMime } from "./fileUtils";
 
 async function readFileFromPath(filePath: string, fileType: FileType): Promise<string | Uint8Array> {
   if (isBinaryType(fileType)) {
@@ -131,6 +132,10 @@ export async function loadDocumentFromFile(file: File): Promise<ParsedDocument |
 }
 
 async function loadFromTauriDialog(): Promise<ParsedDocument | null> {
+  if (isAndroid()) {
+    return loadFromAndroidPicker();
+  }
+
   const selected = await open({
     multiple: false,
     filters: [
@@ -159,6 +164,49 @@ async function loadFromTauriDialog(): Promise<ParsedDocument | null> {
   return validateContent(await parser.parse(raw, {
     title: titleFromFilename(filename),
     file_path: filePath,
+    file_type: fileType,
+    language: "en",
+  }));
+}
+
+interface PickedFile {
+  uri: string | null;
+  name: string | null;
+  mime: string | null;
+}
+
+/**
+ * Android's SAF picker returns a content URI plus the exact display name.
+ * Type comes from the name first; when the provider hides it or drops the
+ * extension, the declared MIME type is the fallback. Everything else is
+ * rejected, matching the desktop picker.
+ */
+async function loadFromAndroidPicker(): Promise<ParsedDocument | null> {
+  const picked = await invoke<PickedFile>("plugin:zenoread-android-fs|pick_file", {
+    mimeTypes: ["text/plain", "application/pdf"],
+  });
+  if (!picked?.uri) return null;
+  return loadFromContentUri(picked.uri, picked.name, picked.mime);
+}
+
+async function loadFromContentUri(
+  uri: string,
+  name: string | null,
+  mime: string | null,
+): Promise<ParsedDocument | null> {
+  const filename = name ?? "document";
+  const fileType = detectFileType(filename) ?? fileTypeFromMime(mime);
+  if (!fileType) {
+    reportError(new Error(t("errors.unsupportedType", { name: filename })), undefined, { context: "fileLoader.loadFromContentUri" });
+    return null;
+  }
+
+  const raw = await readFileFromPath(uri, fileType);
+  const parser = getParserOrReport(fileType, "fileLoader.loadFromContentUri");
+  if (!parser) return null;
+  return validateContent(await parser.parse(raw, {
+    title: titleFromFilename(filename),
+    file_path: uri,
     file_type: fileType,
     language: "en",
   }));

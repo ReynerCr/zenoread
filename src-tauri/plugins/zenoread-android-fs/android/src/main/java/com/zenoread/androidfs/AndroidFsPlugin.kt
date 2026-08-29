@@ -57,7 +57,12 @@ class AndroidFsPlugin(private val activity: Activity) : Plugin(activity) {
             return
           }
           persistReadPermission(uri)
-          invoke.resolve(JSObject().put("uri", uri.toString()).put("name", queryDisplayName(uri)))
+          invoke.resolve(
+            JSObject()
+              .put("uri", uri.toString())
+              .put("name", queryDisplayName(uri))
+              .put("mime", activity.contentResolver.getType(uri))
+          )
         }
         Activity.RESULT_CANCELED -> invoke.resolve(JSObject().put("uri", null))
         else -> invoke.reject("Failed to pick file")
