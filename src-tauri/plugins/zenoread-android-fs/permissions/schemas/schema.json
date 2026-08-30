@@ -307,6 +307,18 @@
           "markdownDescription": "Denies the check_persisted command without any pre-configured scope."
         },
         {
+          "description": "Enables the persist command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-persist",
+          "markdownDescription": "Enables the persist command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the persist command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-persist",
+          "markdownDescription": "Denies the persist command without any pre-configured scope."
+        },
+        {
           "description": "Enables the pick_file command without any pre-configured scope.",
           "type": "string",
           "const": "allow-pick-file",
@@ -319,10 +331,34 @@
           "markdownDescription": "Denies the pick_file command without any pre-configured scope."
         },
         {
-          "description": "Enables the Android SAF picker commands.\n\n#### Granted Permissions\n\n- `allow-pick-file`\n- `allow-check-persisted`\n\n#### This default permission set includes:\n\n- `allow-pick-file`\n- `allow-check-persisted`",
+          "description": "Enables the release command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-release",
+          "markdownDescription": "Enables the release command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the release command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-release",
+          "markdownDescription": "Denies the release command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the release_all command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-release-all",
+          "markdownDescription": "Enables the release_all command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the release_all command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-release-all",
+          "markdownDescription": "Denies the release_all command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the Android SAF picker commands.\n\n#### Granted Permissions\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`\n\n#### This default permission set includes:\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Enables the Android SAF picker commands.\n\n#### Granted Permissions\n\n- `allow-pick-file`\n- `allow-check-persisted`\n\n#### This default permission set includes:\n\n- `allow-pick-file`\n- `allow-check-persisted`"
+          "markdownDescription": "Enables the Android SAF picker commands.\n\n#### Granted Permissions\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`\n\n#### This default permission set includes:\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`"
         }
       ]
     }

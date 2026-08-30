@@ -11,12 +11,16 @@ const mockOpen = vi.hoisted(() => vi.fn());
 const mockInvoke = vi.hoisted(() => vi.fn());
 const mockReadFile = vi.hoisted(() => vi.fn());
 const mockReadTextFile = vi.hoisted(() => vi.fn());
+const mockUseDocumentsStore = vi.hoisted(() =>
+  vi.fn<() => { documents: { file_path: string; modified_date: string }[] }>(() => ({ documents: [] })),
+);
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: mockOpen }));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mockInvoke }));
 vi.mock("@tauri-apps/plugin-fs", () => ({
   readFile: mockReadFile,
   readTextFile: mockReadTextFile,
 }));
+vi.mock("../stores/documents", () => ({ useDocumentsStore: mockUseDocumentsStore }));
 vi.mock("../utils/platform", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../utils/platform")>();
   return { ...actual, isTauri: vi.fn(() => true), isAndroid: vi.fn(() => false) };
@@ -73,6 +77,7 @@ describe("loadDocumentFromDialog on Android", () => {
   beforeEach(() => {
     mockOpen.mockReset();
     mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
     mockReadFile.mockReset();
     mockReadTextFile.mockReset();
     vi.mocked(isAndroid).mockReturnValue(true);
@@ -139,11 +144,41 @@ describe("loadDocumentFromDialog on Android", () => {
     await expect(loadDocumentFromDialog()).resolves.toBeNull();
     expect(mockReadTextFile).not.toHaveBeenCalled();
   });
+
+  it("evicts oldest grants and retries persistence on the limit error", async () => {
+    mockUseDocumentsStore.mockReturnValue({
+      documents: [
+        { file_path: "content://provider/document/old", modified_date: "2025-01-01" },
+        { file_path: "content://provider/document/new", modified_date: "2025-01-02" },
+      ],
+    });
+    mockInvoke.mockResolvedValueOnce({
+      uri: "content://provider/document/picked",
+      name: "picked.txt",
+      mime: "text/plain",
+      persistError: "limit",
+    });
+    mockReadTextFile.mockResolvedValue("Hello world.");
+
+    const doc = await loadDocumentFromDialog();
+
+    expect(mockInvoke).toHaveBeenCalledWith("plugin:zenoread-android-fs|release", {
+      uri: "content://provider/document/old",
+    });
+    expect(mockInvoke).toHaveBeenCalledWith("plugin:zenoread-android-fs|release", {
+      uri: "content://provider/document/new",
+    });
+    expect(mockInvoke).toHaveBeenCalledWith("plugin:zenoread-android-fs|persist", {
+      uri: "content://provider/document/picked",
+    });
+    expect(doc?.file_type).toBe("txt");
+  });
 });
 
 describe("loadDocumentFromPath on Android", () => {
   beforeEach(() => {
     mockInvoke.mockReset();
+    mockInvoke.mockResolvedValue(undefined);
     mockReadFile.mockReset();
     mockReadTextFile.mockReset();
     vi.mocked(isAndroid).mockReturnValue(true);
@@ -175,6 +210,18 @@ describe("loadDocumentFromPath on Android", () => {
       loadDocumentFromPath("content://provider/document/1234", "txt", "en", "Stored title"),
     ).resolves.toBeNull();
     expect(mockReadTextFile).not.toHaveBeenCalled();
+  });
+
+  it("releases the dead grant when reopening a content uri read fails", async () => {
+    mockInvoke.mockResolvedValueOnce(true); // check_persisted passes
+    mockReadTextFile.mockRejectedValueOnce(new Error("File not found"));
+
+    await expect(
+      loadDocumentFromPath("content://provider/document/gone", "txt", "en", "Stored title"),
+    ).resolves.toBeNull();
+    expect(mockInvoke).toHaveBeenCalledWith("plugin:zenoread-android-fs|release", {
+      uri: "content://provider/document/gone",
+    });
   });
 
   it("still derives the title from plain paths on desktop", async () => {

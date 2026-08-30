@@ -1,4 +1,4 @@
-const COMMANDS: &[&str] = &["pick_file", "check_persisted"];
+const COMMANDS: &[&str] = &["pick_file", "check_persisted", "persist", "release", "release_all"];
 
 fn main() {
     let result = tauri_plugin::Builder::new(COMMANDS)

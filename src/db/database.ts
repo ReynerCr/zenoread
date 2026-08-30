@@ -14,6 +14,7 @@ import {
   type UserSettingsDocType,
 } from "./schemas/userSettings.schema";
 import { detectLanguage } from "../i18n";
+import { releaseAllPersistedGrants } from "../documents/androidGrants";
 import {
   documentsSchema,
   type DocumentDocType,
@@ -145,4 +146,8 @@ export async function resetDatabase(): Promise<void> {
 
   // Re-seed default settings so the app remains usable immediately.
   await db.user_settings.insert({ ...DEFAULT_USER_SETTINGS, language: detectLanguage() });
+
+  // The OS-side persisted URI grants survive the library wipe. Releasing them
+  // makes a reset fully reset file access on Android.
+  await releaseAllPersistedGrants();
 }

@@ -3,6 +3,7 @@ package com.zenoread.androidfs
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
 import androidx.activity.result.ActivityResult
 import app.tauri.Logger
@@ -14,14 +15,17 @@ import app.tauri.plugin.Invoke
 import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
 
+/** Documented OS cap on persisted URI grants per app: 128 before Android 11, 512 from 11 on. */
+private val persistedGrantCap = if (Build.VERSION.SDK_INT >= 30) 512 else 128
+
 @InvokeArg
-class PickFileOptions {
-  var mimeTypes: Array<String> = emptyArray()
+class UriOptions {
+  var uri: String = ""
 }
 
 @InvokeArg
-class CheckPersistedOptions {
-  var uri: String = ""
+class PickFileOptions {
+  var mimeTypes: Array<String> = emptyArray()
 }
 
 @TauriPlugin
@@ -56,12 +60,13 @@ class AndroidFsPlugin(private val activity: Activity) : Plugin(activity) {
             invoke.resolve(JSObject().put("uri", null))
             return
           }
-          persistReadPermission(uri)
+          val persistError = persistReadPermission(uri)
           invoke.resolve(
             JSObject()
               .put("uri", uri.toString())
               .put("name", queryDisplayName(uri))
               .put("mime", activity.contentResolver.getType(uri))
+              .put("persistError", persistError)
           )
         }
         Activity.RESULT_CANCELED -> invoke.resolve(JSObject().put("uri", null))
@@ -76,7 +81,7 @@ class AndroidFsPlugin(private val activity: Activity) : Plugin(activity) {
   @Command
   fun checkPersistedUriPermission(invoke: Invoke) {
     try {
-      val args = invoke.parseArgs(CheckPersistedOptions::class.java)
+      val args = invoke.parseArgs(UriOptions::class.java)
       val uri = Uri.parse(args.uri)
       val persisted = activity.contentResolver.persistedUriPermissions
         .any { it.uri == uri && it.isReadPermission }
@@ -86,15 +91,79 @@ class AndroidFsPlugin(private val activity: Activity) : Plugin(activity) {
     }
   }
 
-  private fun persistReadPermission(uri: Uri) {
+  @Command
+  fun persistUriPermission(invoke: Invoke) {
     try {
+      val args = invoke.parseArgs(UriOptions::class.java)
+      activity.contentResolver.takePersistableUriPermission(
+        Uri.parse(args.uri),
+        Intent.FLAG_GRANT_READ_URI_PERMISSION
+      )
+      invoke.resolve(JSObject().put("persisted", true))
+    } catch (ex: Exception) {
+      // Post-eviction retry. Keep the failure visible in logcat
+      // even though the app keeps the session grant.
+      Logger.error("Failed to persist URI permission: ${ex.message}")
+      invoke.reject(ex.message ?: "Failed to persist URI permission")
+    }
+  }
+
+  @Command
+  fun releaseUriPermission(invoke: Invoke) {
+    try {
+      val args = invoke.parseArgs(UriOptions::class.java)
+      activity.contentResolver.releasePersistableUriPermission(
+        Uri.parse(args.uri),
+        Intent.FLAG_GRANT_READ_URI_PERMISSION
+      )
+      invoke.resolve(JSObject().put("released", true))
+    } catch (ex: Exception) {
+      invoke.reject(ex.message ?: "Failed to release URI permission")
+    }
+  }
+
+  @Command
+  fun releaseAllUriPermissions(invoke: Invoke) {
+    try {
+      var released = 0
+      for (permission in activity.contentResolver.getPersistedUriPermissions()) {
+        if (permission.isReadPermission) {
+          activity.contentResolver.releasePersistableUriPermission(
+            permission.uri,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION
+          )
+          released++
+        }
+      }
+      invoke.resolve(JSObject().put("released", released))
+    } catch (ex: Exception) {
+      invoke.reject(ex.message ?: "Failed to release URI permissions")
+    }
+  }
+
+  /**
+   * Takes the persisted read grant; returns "limit" when the OS cap on
+   * persisted grants is hit, "refused" when the provider does not support
+   * persistence, or null on success.
+   */
+  private fun persistReadPermission(uri: Uri): String? {
+    return try {
       activity.contentResolver.takePersistableUriPermission(
         uri,
         Intent.FLAG_GRANT_READ_URI_PERMISSION
       )
+      null
     } catch (e: SecurityException) {
-      // Some providers refuse persistable grants; the session grant still works.
-      Logger.warn("Provider refused persistable URI permission: ${e.message}")
+      // Classify by the documented limit rather than the message, which
+      // could drift.
+      val atCap = activity.contentResolver.persistedUriPermissions.size >= persistedGrantCap
+      if (atCap) {
+        Logger.warn("Persisted URI grant cap reached: ${e.message}")
+        "limit"
+      } else {
+        Logger.warn("Provider refused persistable URI permission: ${e.message}")
+        "refused"
+      }
     }
   }
 

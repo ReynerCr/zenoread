@@ -8,6 +8,8 @@ import { isTauri, isAndroid } from "../utils/platform";
 import { reportError, AppError } from "../utils/errors";
 import { t } from "../i18n";
 import { detectFileType, isBinaryType, titleFromFilename, fileTypeFromMime } from "./fileUtils";
+import { evictOldestGrants, persistPersistedGrant, releasePersistedGrant } from "./androidGrants";
+import { useDocumentsStore } from "../stores/documents";
 
 async function readFileFromPath(filePath: string, fileType: FileType): Promise<string | Uint8Array> {
   if (isBinaryType(fileType)) {
@@ -104,7 +106,17 @@ export async function loadDocumentFromPath(
 
       const parser = getParserOrReport(fileType, "fileLoader.loadDocumentFromPath");
       if (!parser) return null;
-      const raw = await readFileFromPath(filePath, fileType);
+      let raw: string | Uint8Array;
+      try {
+        raw = await readFileFromPath(filePath, fileType);
+      } catch (error) {
+        // The persisted grant exists but the document is gone (moved, deleted,
+        // or the provider stopped serving it): release the dead grant.
+        if (isAndroid() && filePath.startsWith("content://")) {
+          await releasePersistedGrant(filePath);
+        }
+        throw error;
+      }
       const filename = filePath.split("/").pop() ?? filePath;
       const title =
         filePath.startsWith("content://") && storedTitle
@@ -191,6 +203,7 @@ interface PickedFile {
   uri: string | null;
   name: string | null;
   mime: string | null;
+  persistError: string | null;
 }
 
 /**
@@ -204,6 +217,14 @@ async function loadFromAndroidPicker(): Promise<ParsedDocument | null> {
     mimeTypes: ["text/plain", "application/pdf"],
   });
   if (!picked?.uri) return null;
+
+  if (picked.persistError === "limit") {
+    // The OS cap on persisted grants (128/512) was hit: free the least
+    // recently opened slots and retry persistence once.
+    await evictOldestGrants(useDocumentsStore().documents, 8);
+    await persistPersistedGrant(picked.uri);
+  }
+
   return loadFromContentUri(picked.uri, picked.name, picked.mime);
 }
 

@@ -22,10 +22,12 @@ struct PickFilePayload<'a> {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct PickFileResponse {
     uri: Option<String>,
     name: Option<String>,
     mime: Option<String>,
+    persist_error: Option<String>,
 }
 
 #[cfg(target_os = "android")]
@@ -74,6 +76,19 @@ async fn pick_file<R: Runtime>(
     }
 }
 
+#[cfg(target_os = "android")]
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UriPayload<'a> {
+    uri: &'a str,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Deserialize, Serialize)]
+struct PersistResponse {
+    persisted: bool,
+}
+
 /// Whether the app holds a persisted read grant for the given content URI.
 #[tauri::command]
 async fn check_persisted<R: Runtime>(app: tauri::AppHandle<R>, uri: String) -> Result<bool, String> {
@@ -96,10 +111,77 @@ async fn check_persisted<R: Runtime>(app: tauri::AppHandle<R>, uri: String) -> R
     }
 }
 
+/// Persists the read grant for a content URI. Used to retry after evicting
+/// older grants when the OS cap is hit.
+#[tauri::command]
+async fn persist<R: Runtime>(app: tauri::AppHandle<R>, uri: String) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        let fs = app.state::<AndroidFs<R>>();
+        let _ = fs
+            .0
+            .run_mobile_plugin::<PersistResponse>("persistUriPermission", UriPayload { uri: &uri })
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app, uri);
+        Err("zenoread-android-fs is only available on Android".into())
+    }
+}
+
+/// Releases the persisted read grant for a content URI (dead grant cleanup).
+#[tauri::command]
+async fn release<R: Runtime>(app: tauri::AppHandle<R>, uri: String) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        let fs = app.state::<AndroidFs<R>>();
+        let _ = fs
+            .0
+            .run_mobile_plugin::<serde_json::Value>(
+                "releaseUriPermission",
+                UriPayload { uri: &uri },
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app, uri);
+        Err("zenoread-android-fs is only available on Android".into())
+    }
+}
+
+/// Releases every persisted read grant the app holds (app data reset).
+#[tauri::command]
+async fn release_all<R: Runtime>(app: tauri::AppHandle<R>) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        let fs = app.state::<AndroidFs<R>>();
+        let _ = fs
+            .0
+            .run_mobile_plugin::<serde_json::Value>("releaseAllUriPermissions", ())
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = app;
+        Err("zenoread-android-fs is only available on Android".into())
+    }
+}
+
 /// Initializes the plugin.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("zenoread-android-fs")
-        .invoke_handler(tauri::generate_handler![pick_file, check_persisted])
+        .invoke_handler(tauri::generate_handler![
+            pick_file,
+            check_persisted,
+            persist,
+            release,
+            release_all
+        ])
         .setup(|app, api| {
             #[cfg(target_os = "android")]
             {
