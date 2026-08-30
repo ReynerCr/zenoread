@@ -106,28 +106,27 @@ export async function loadDocumentFromPath(
 
       const parser = getParserOrReport(fileType, "fileLoader.loadDocumentFromPath");
       if (!parser) return null;
-      let raw: string | Uint8Array;
-      try {
-        raw = await readFileFromPath(filePath, fileType);
-      } catch (error) {
-        // The persisted grant exists but the document is gone (moved, deleted,
-        // or the provider stopped serving it): release the dead grant.
-        if (isAndroid() && filePath.startsWith("content://")) {
-          await releasePersistedGrant(filePath);
-        }
-        throw error;
-      }
       const filename = filePath.split("/").pop() ?? filePath;
       const title =
         filePath.startsWith("content://") && storedTitle
           ? storedTitle
           : titleFromFilename(filename);
-      return validateContent(await parser.parse(raw, {
-        title,
-        file_path: filePath,
-        file_type: fileType,
-        language,
-      }));
+
+      const load = async () => {
+        const raw = await readFileFromPath(filePath, fileType);
+        return validateContent(await parser.parse(raw, {
+          title,
+          file_path: filePath,
+          file_type: fileType,
+          language,
+        }));
+      };
+
+      // Only content URIs carry persisted grants; release them on a failed open.
+      if (isAndroid() && filePath.startsWith("content://")) {
+        return withGrantCleanup(filePath, load);
+      }
+      return load();
     },
     t("errors.readDisk"),
     "fileLoader.loadDocumentFromPath",
@@ -228,27 +227,44 @@ async function loadFromAndroidPicker(): Promise<ParsedDocument | null> {
   return loadFromContentUri(picked.uri, picked.name, picked.mime);
 }
 
+/**
+ * Releases the persisted grant when a content-URI open fails, so unusable
+ * files do not keep counting against the OS grant cap.
+ */
+async function withGrantCleanup<T>(uri: string, load: () => Promise<T | null>): Promise<T | null> {
+  try {
+    const result = await load();
+    if (result === null) await releasePersistedGrant(uri);
+    return result;
+  } catch (error) {
+    await releasePersistedGrant(uri);
+    throw error;
+  }
+}
+
 async function loadFromContentUri(
   uri: string,
   name: string | null,
   mime: string | null,
 ): Promise<ParsedDocument | null> {
-  const filename = name ?? "document";
-  const fileType = detectFileType(filename) ?? fileTypeFromMime(mime);
-  if (!fileType) {
-    reportError(new Error(t("errors.unsupportedType", { name: filename })), undefined, { context: "fileLoader.loadFromContentUri" });
-    return null;
-  }
+  return withGrantCleanup(uri, async () => {
+    const filename = name ?? "document";
+    const fileType = detectFileType(filename) ?? fileTypeFromMime(mime);
+    if (!fileType) {
+      reportError(new Error(t("errors.unsupportedType", { name: filename })), undefined, { context: "fileLoader.loadFromContentUri" });
+      return null;
+    }
 
-  const raw = await readFileFromPath(uri, fileType);
-  const parser = getParserOrReport(fileType, "fileLoader.loadFromContentUri");
-  if (!parser) return null;
-  return validateContent(await parser.parse(raw, {
-    title: titleFromFilename(filename),
-    file_path: uri,
-    file_type: fileType,
-    language: "en",
-  }));
+    const raw = await readFileFromPath(uri, fileType);
+    const parser = getParserOrReport(fileType, "fileLoader.loadFromContentUri");
+    if (!parser) return null;
+    return validateContent(await parser.parse(raw, {
+      title: titleFromFilename(filename),
+      file_path: uri,
+      file_type: fileType,
+      language: "en",
+    }));
+  });
 }
 
 async function loadFromWebInput(): Promise<ParsedDocument | null> {

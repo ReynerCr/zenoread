@@ -102,6 +102,7 @@ describe("loadDocumentFromDialog on Android", () => {
     expect(doc?.file_type).toBe("txt");
     expect(doc?.title).toBe("hello");
     expect(doc?.file_path).toBe("content://provider/document/hello.txt");
+    expect(mockInvoke).not.toHaveBeenCalledWith("plugin:zenoread-android-fs|release", expect.anything());
   });
 
   it("returns null when the picker is cancelled", async () => {
@@ -143,6 +144,35 @@ describe("loadDocumentFromDialog on Android", () => {
 
     await expect(loadDocumentFromDialog()).resolves.toBeNull();
     expect(mockReadTextFile).not.toHaveBeenCalled();
+  });
+
+  it("releases the grant when the picked file has an unsupported type", async () => {
+    mockInvoke.mockResolvedValueOnce({
+      uri: "content://provider/document/1234",
+      name: null,
+      mime: null,
+      persistError: null,
+    });
+
+    await expect(loadDocumentFromDialog()).resolves.toBeNull();
+    expect(mockInvoke).toHaveBeenCalledWith("plugin:zenoread-android-fs|release", {
+      uri: "content://provider/document/1234",
+    });
+  });
+
+  it("releases the grant when the picked file fails to open", async () => {
+    mockInvoke.mockResolvedValueOnce({
+      uri: "content://provider/document/broken.txt",
+      name: "broken.txt",
+      mime: "text/plain",
+      persistError: null,
+    });
+    mockReadTextFile.mockRejectedValue(new Error("boom"));
+
+    await expect(loadDocumentFromDialog()).resolves.toBeNull();
+    expect(mockInvoke).toHaveBeenCalledWith("plugin:zenoread-android-fs|release", {
+      uri: "content://provider/document/broken.txt",
+    });
   });
 
   it("evicts oldest grants and retries persistence on the limit error", async () => {
@@ -221,6 +251,18 @@ describe("loadDocumentFromPath on Android", () => {
     ).resolves.toBeNull();
     expect(mockInvoke).toHaveBeenCalledWith("plugin:zenoread-android-fs|release", {
       uri: "content://provider/document/gone",
+    });
+  });
+
+  it("releases the grant when the reopened file fails validation", async () => {
+    mockInvoke.mockResolvedValueOnce(true); // check_persisted passes
+    mockReadTextFile.mockResolvedValue(""); // empty content fails validation
+
+    await expect(
+      loadDocumentFromPath("content://provider/document/empty.txt", "txt", "en", "Stored title"),
+    ).resolves.toBeNull();
+    expect(mockInvoke).toHaveBeenCalledWith("plugin:zenoread-android-fs|release", {
+      uri: "content://provider/document/empty.txt",
     });
   });
 
