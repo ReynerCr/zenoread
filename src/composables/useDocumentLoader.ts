@@ -75,7 +75,7 @@ export function useDocumentLoader(
       if (!meta) return;
 
       if (isTauri()) {
-        const doc = await loadDocumentFromPath(meta.file_path, meta.file_type, meta.language);
+        const doc = await loadDocumentFromPath(meta.file_path, meta.file_type, meta.language, meta.title);
         if (!doc) return;
         await openParsedDocument(doc);
       } else {

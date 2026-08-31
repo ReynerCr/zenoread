@@ -22,7 +22,7 @@ function handleOpenDoc(docId: string) {
 </script>
 
 <template>
-  <div class="flex h-full w-full flex-col bg-zeno-bg text-zeno-text">
+  <div class="flex h-full w-full flex-col bg-zeno-bg text-zeno-text pt-[var(--safe-top,env(safe-area-inset-top))] pb-[var(--safe-bottom,env(safe-area-inset-bottom))] pl-[var(--safe-left,env(safe-area-inset-left))] pr-[var(--safe-right,env(safe-area-inset-right))]">
     <header
       class="flex items-center justify-between border-b border-zeno-border bg-zeno-surface px-4 py-2"
     >

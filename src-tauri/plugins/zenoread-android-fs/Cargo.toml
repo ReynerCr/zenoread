@@ -1,0 +1,15 @@
+[package]
+name = "zenoread-android-fs"
+version = "0.1.0"
+description = "Android SAF file picker with persisted permissions for ZenoRead"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+links = "zenoread-android-fs"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = "2"

@@ -82,6 +82,7 @@
   "errors.fileEmpty": "The file appears to be empty.",
   "errors.loadFile": "Could not load the file.",
   "errors.readDisk": "Could not read the file from disk.",
+  "errors.fileNotAccessible": "This file is no longer accessible. Pick it again to keep reading.",
   "errors.readDropped": "Could not read the dropped file.",
   "errors.noParser": "No parser for .{type} files yet.",
   "errors.unsupportedType": "Unsupported file type: {name}",
