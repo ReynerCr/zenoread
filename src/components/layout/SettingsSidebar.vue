@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n";
 import { confirm as tauriConfirm } from "@tauri-apps/plugin-dialog";
 import { useSettingsStore } from "../../stores/settings";
 import { useDocumentsStore } from "../../stores/documents";
-import { resetDatabase } from "../../db/database";
+import { clearHistory } from "../../db/database";
 import {
   DEFAULT_PAUSE_MULTIPLIERS,
   DEFAULT_USER_SETTINGS,
@@ -84,9 +84,9 @@ async function resetAllSettings() {
   void settings.update({ ...defaults, language: detectLanguage() });
 }
 
-async function resetAppData() {
-  if (!(await confirmDialog(t("settings.confirmDeleteAll")))) return;
-  await resetDatabase();
+async function clearRecentDocuments() {
+  if (!(await confirmDialog(t("settings.confirmClearHistory")))) return;
+  await clearHistory();
   documentsStore.clearAll();
   documentsStore.setCurrent(null);
   // Reload to ensure all stores re-initialize from the fresh database.
@@ -287,9 +287,9 @@ async function resetAppData() {
         </button>
         <button
           class="rounded-md border border-red-500/40 px-3 py-1.5 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-400"
-          @click="resetAppData"
+          @click="clearRecentDocuments"
         >
-          {{ $t('settings.deleteAllData') }}
+          {{ $t('settings.clearHistory') }}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import {
   createRxDatabase,
+  removeRxDatabase,
   addRxPlugin,
   type RxDatabase,
   type RxCollection,
@@ -7,14 +8,16 @@ import {
 } from "rxdb";
 import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
 import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
+import { wrappedValidateAjvStorage } from "rxdb/plugins/validate-ajv";
+import { RxDBDevModePlugin } from "rxdb/plugins/dev-mode";
+import { invoke } from "@tauri-apps/api/core";
 
 import {
   userSettingsSchema,
-  DEFAULT_USER_SETTINGS,
   type UserSettingsDocType,
 } from "./schemas/userSettings.schema";
-import { detectLanguage } from "../i18n";
 import { releaseAllPersistedGrants } from "../documents/androidGrants";
+import { isTauri } from "../utils/platform";
 import {
   documentsSchema,
   type DocumentDocType,
@@ -38,26 +41,21 @@ export type ZenoDatabase = RxDatabase<ZenoCollections>;
 
 const DB_NAME = "zenoread";
 
+addRxPlugin(RxDBMigrationSchemaPlugin);
+// Dev plugin useful for debugging, removed on release.
+if (import.meta.env.DEV) {
+  addRxPlugin(RxDBDevModePlugin);
+}
+
+// Storage instance. Dev-mode wrapping adds a schema validator and
+// helpful errors
+const storage: RxStorage<unknown, unknown> = import.meta.env.DEV
+  ? wrappedValidateAjvStorage({ storage: getRxStorageDexie() })
+  : getRxStorageDexie();
+
 let dbPromise: Promise<ZenoDatabase> | null = null;
 
 async function createDatabase(): Promise<ZenoDatabase> {
-  // Dexie wraps the IndexedDB provided by the Tauri WebView.
-  let storage: RxStorage<unknown, unknown> = getRxStorageDexie();
-
-  // Dev-mode adds helpful error messages and requires a schema validator to be
-  // wrapped around the storage. Both are excluded from production builds for
-  // performance.
-  if (import.meta.env.DEV) {
-    const { RxDBDevModePlugin } = await import("rxdb/plugins/dev-mode");
-    const { wrappedValidateAjvStorage } = await import(
-      "rxdb/plugins/validate-ajv"
-    );
-    addRxPlugin(RxDBDevModePlugin);
-    storage = wrappedValidateAjvStorage({ storage });
-  }
-
-  addRxPlugin(RxDBMigrationSchemaPlugin);
-
   const db = await createRxDatabase<ZenoCollections>({
     name: DB_NAME,
     storage,
@@ -132,22 +130,42 @@ export function getDatabase(): Promise<ZenoDatabase> {
 }
 
 /**
- * Removes all documents from every collection and re-seeds the default settings.
- * Used by the "Reset app data" button so users (and developers) can clear
- * stale data after schema changes without manually hunting for IndexedDB files.
+ * Empties the document library and reading progress, releases Android
+ * persisted URI grants, and leaves user settings untouched. Used by the
+ * Settings "Clear history" button so users can wipe the recent documents
+ * list without losing their reading preferences.
  */
-export async function resetDatabase(): Promise<void> {
+export async function clearHistory(): Promise<void> {
   const db = await getDatabase();
 
-  for (const collection of [db.documents, db.reading_progress, db.user_settings]) {
+  for (const collection of [db.documents, db.reading_progress]) {
     const docs = await collection.find().exec();
     await Promise.all(docs.map((d) => d.remove()));
   }
 
-  // Re-seed default settings so the app remains usable immediately.
-  await db.user_settings.insert({ ...DEFAULT_USER_SETTINGS, language: detectLanguage() });
-
-  // The OS-side persisted URI grants survive the library wipe. Releasing them
-  // makes a reset fully reset file access on Android.
   await releaseAllPersistedGrants();
+}
+
+/**
+ * Clears app user data and brings the app back to a clean state. Best effort:
+ * tries RxDB removal first, falls back to a Tauri file-level wipe. Throws when
+ * no fix is possible (e.g. corrupt IndexedDB on web).
+ */
+export async function resetAllAppData(): Promise<void> {
+  // JS-level wipe: handles partial corruption (DB opens but operations fail).
+  try {
+    await removeRxDatabase(DB_NAME, storage, false);
+    dbPromise = null;
+    setTimeout(() => window.location.reload(), 500);
+    return;
+  } catch {
+    // File-level corruption: removeRxDatabase can't open the broken file.
+  }
+
+  if (!isTauri()) {
+    throw new Error("Database could not be wiped on web");
+  }
+
+  await invoke("wipe_app_data");
+  await invoke("exit_app");
 }

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { resetDatabase } from "../db/database";
+import { resetAllAppData } from "../db/database";
+import { reportError } from "../utils/errors";
+import { t } from "../i18n";
 
 const props = defineProps<{ show: boolean }>();
 
@@ -9,10 +11,10 @@ const resetting = ref(false);
 async function handleReset() {
   resetting.value = true;
   try {
-    await resetDatabase();
-    setTimeout(() => window.location.reload(), 500);
-  } catch {
+    await resetAllAppData();
+  } catch (error) {
     resetting.value = false;
+    reportError(error, t("recovery.resetFailed"), { context: "recovery.handleReset" });
   }
 }
 </script>
