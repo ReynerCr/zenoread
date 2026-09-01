@@ -133,12 +133,12 @@ test.describe("Settings sidebar — reset buttons", () => {
     await expect(sidebar.getByLabel(/Reading speed:/)).toHaveValue("300");
   });
 
-  test("Delete all app data button shows confirmation dialog", async ({ page }) => {
+  test("Clear history button shows confirmation dialog", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Toggle settings" }).click();
 
     const sidebar = page.getByRole("complementary", { name: "Settings" });
-    const deleteBtn = sidebar.getByRole("button", { name: "Delete all app data" });
+    const deleteBtn = sidebar.getByRole("button", { name: "Clear history" });
 
     // Decline the confirmation — should not reload.
     page.once("dialog", (dialog) => dialog.dismiss());
