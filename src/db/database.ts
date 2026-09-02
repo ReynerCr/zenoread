@@ -156,6 +156,7 @@ export async function resetAllAppData(): Promise<void> {
   try {
     await removeRxDatabase(DB_NAME, storage, false);
     dbPromise = null;
+    await releaseAllPersistedGrants();
     setTimeout(() => window.location.reload(), 500);
     return;
   } catch {
