@@ -3,14 +3,14 @@ import type { FileType } from "../db/schemas/documents.schema";
 import { PdfStreamer } from "./pdfStreamer";
 import { AppError } from "../utils/errors";
 
-let pdfjsLibPromise: Promise<typeof import("pdfjs-dist")> | null = null;
+let pdfjsLibPromise: Promise<typeof import("pdfjs-dist/legacy/build/pdf.mjs")> | null = null;
 
-async function getPdfjsLib(): Promise<typeof import("pdfjs-dist")> {
+async function getPdfjsLib(): Promise<typeof import("pdfjs-dist/legacy/build/pdf.mjs")> {
   if (!pdfjsLibPromise) {
-    pdfjsLibPromise = import("pdfjs-dist").then(async (lib) => {
+    pdfjsLibPromise = import("pdfjs-dist/legacy/build/pdf.mjs").then(async (lib) => {
       try {
         const { default: PdfWorker } = await import(
-          "pdfjs-dist/build/pdf.worker.min.mjs?worker"
+          "pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker"
         );
         lib.GlobalWorkerOptions.workerPort = new PdfWorker();
       } catch {

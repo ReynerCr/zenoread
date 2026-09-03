@@ -1,5 +1,5 @@
 import type { DocumentStreamer } from "./types";
-import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist";
+import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 /**
  * Streamer for PDF files. Loads page text on demand via pdf.js instead of
