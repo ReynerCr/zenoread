@@ -1,12 +1,17 @@
+#[cfg(not(target_os = "android"))]
 use std::fs;
+#[cfg(not(target_os = "android"))]
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+#[cfg(not(target_os = "android"))]
+use tauri::Manager;
+use tauri::AppHandle;
 use tauri_plugin_log::{Target, TargetKind, RotationStrategy};
 use log::LevelFilter;
 
 /// Removes every entry under the app's data directory except `logs/`, used
 /// by the recovery dialog when IndexedDB is unreadable. Desktop-only;
-/// Android returns an error (PathResolver unavailable there).
+/// Android delegates to the kotlin-side plugin which calls
+/// `ActivityManager.clearApplicationUserData()` and exits the process.
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 fn wipe_app_data(app: AppHandle) -> Result<(), String> {
@@ -33,8 +38,8 @@ fn wipe_app_data(app: AppHandle) -> Result<(), String> {
 
 #[cfg(target_os = "android")]
 #[tauri::command]
-fn wipe_app_data() -> Result<(), String> {
-    Err("wipe_app_data is not yet implemented on Android".into())
+fn wipe_app_data(app: AppHandle) -> Result<(), String> {
+    zenoread_android_fs::wipe_app_data(&app)
 }
 
 /// Terminates the Tauri process. Called from the recovery flow after a wipe

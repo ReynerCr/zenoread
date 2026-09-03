@@ -1,6 +1,7 @@
 package com.zenoread.androidfs
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -138,6 +139,23 @@ class AndroidFsPlugin(private val activity: Activity) : Plugin(activity) {
       invoke.resolve(JSObject().put("released", released))
     } catch (ex: Exception) {
       invoke.reject(ex.message ?: "Failed to release URI permissions")
+    }
+  }
+
+  /**
+   * Wipes the app's private data via Android's native implementation of 
+   * clearAppData. Then, forces the process to exit. Parity with the desktop
+   * `wipe_app_data` command. The call returns a result but the caller
+   * typically won't see it as the process is killed on success.
+   */
+  @Command
+  fun clearAppData(invoke: Invoke) {
+    try {
+      val am = activity.getSystemService(Activity.ACTIVITY_SERVICE) as ActivityManager
+      val cleared = am.clearApplicationUserData()
+      invoke.resolve(JSObject().put("cleared", cleared))
+    } catch (ex: Exception) {
+      invoke.reject(ex.message ?: "Failed to clear app data")
     }
   }
 

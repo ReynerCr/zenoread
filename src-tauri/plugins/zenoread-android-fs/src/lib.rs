@@ -172,6 +172,37 @@ async fn release_all<R: Runtime>(app: tauri::AppHandle<R>) -> Result<(), String>
     }
 }
 
+/// Wipes the app's private data dir via `ActivityManager.clearApplicationUserData`
+/// and triggers a process exit. Parity with the desktop `wipe_app_data` command.
+#[tauri::command]
+async fn clear_app_data<R: Runtime>(app: tauri::AppHandle<R>) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        let fs = app.state::<AndroidFs<R>>();
+        let _ = fs
+            .0
+            .run_mobile_plugin::<serde_json::Value>("clearAppData", ())
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = app;
+        Err("zenoread-android-fs is only available on Android".into())
+    }
+}
+
+/// Wipes the app's private data dir from a host-side Tauri command.
+/// Android-only.
+#[cfg(target_os = "android")]
+pub fn wipe_app_data<R: Runtime>(app: &tauri::AppHandle<R>) -> Result<(), String> {
+    let fs = app.state::<AndroidFs<R>>();
+    fs.0
+        .run_mobile_plugin::<serde_json::Value>("clearAppData", ())
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Initializes the plugin.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("zenoread-android-fs")
@@ -180,7 +211,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             check_persisted,
             persist,
             release,
-            release_all
+            release_all,
+            clear_app_data
         ])
         .setup(|app, api| {
             #[cfg(target_os = "android")]

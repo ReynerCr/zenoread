@@ -307,6 +307,18 @@
           "markdownDescription": "Denies the check_persisted command without any pre-configured scope."
         },
         {
+          "description": "Enables the clear_app_data command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-clear-app-data",
+          "markdownDescription": "Enables the clear_app_data command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the clear_app_data command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-clear-app-data",
+          "markdownDescription": "Denies the clear_app_data command without any pre-configured scope."
+        },
+        {
           "description": "Enables the persist command without any pre-configured scope.",
           "type": "string",
           "const": "allow-persist",
@@ -355,10 +367,10 @@
           "markdownDescription": "Denies the release_all command without any pre-configured scope."
         },
         {
-          "description": "Enables the Android SAF picker commands.\n\n#### Granted Permissions\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`\n\n#### This default permission set includes:\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`",
+          "description": "Enables the Android SAF picker commands.\n\n#### Granted Permissions\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`\n- `allow-clear-app-data`\n\n#### This default permission set includes:\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`\n- `allow-clear-app-data`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Enables the Android SAF picker commands.\n\n#### Granted Permissions\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`\n\n#### This default permission set includes:\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`"
+          "markdownDescription": "Enables the Android SAF picker commands.\n\n#### Granted Permissions\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`\n- `allow-clear-app-data`\n\n#### This default permission set includes:\n\n- `allow-pick-file`\n- `allow-check-persisted`\n- `allow-persist`\n- `allow-release`\n- `allow-release-all`\n- `allow-clear-app-data`"
         }
       ]
     }
