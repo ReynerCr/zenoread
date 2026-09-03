@@ -39,8 +39,6 @@ export interface ZenoCollections {
 
 export type ZenoDatabase = RxDatabase<ZenoCollections>;
 
-const DB_NAME = "zenoread";
-
 addRxPlugin(RxDBMigrationSchemaPlugin);
 // Dev plugin useful for debugging, removed on release.
 if (import.meta.env.DEV) {
@@ -52,15 +50,21 @@ if (import.meta.env.DEV) {
 const storage: RxStorage<unknown, unknown> = import.meta.env.DEV
   ? wrappedValidateAjvStorage({ storage: getRxStorageDexie() })
   : getRxStorageDexie();
+const dbOptions = {
+  name: "zenoread",
+  storage,
+  multiInstance: false,
+  eventReduce: true,
+};
 
 let dbPromise: Promise<ZenoDatabase> | null = null;
 
 async function createDatabase(): Promise<ZenoDatabase> {
   const db = await createRxDatabase<ZenoCollections>({
-    name: DB_NAME,
-    storage,
-    multiInstance: false,
-    eventReduce: true,
+    name: dbOptions.name,
+    storage: dbOptions.storage,
+    multiInstance: dbOptions.multiInstance,
+    eventReduce: dbOptions.eventReduce,
   });
 
   await db.addCollections({
@@ -154,7 +158,7 @@ export async function clearHistory(): Promise<void> {
 export async function resetAllAppData(): Promise<void> {
   // JS-level wipe: handles partial corruption (DB opens but operations fail).
   try {
-    await removeRxDatabase(DB_NAME, storage, false);
+    await removeRxDatabase(dbOptions.name, dbOptions.storage, dbOptions.multiInstance);
     dbPromise = null;
     await releaseAllPersistedGrants();
     setTimeout(() => window.location.reload(), 500);
