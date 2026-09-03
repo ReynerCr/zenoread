@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist";
+import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 /** Creates a mock PDF document proxy for testing. Handles empty pages gracefully. */
 export function makeMockPdf(pages: string[]): PDFDocumentProxy {

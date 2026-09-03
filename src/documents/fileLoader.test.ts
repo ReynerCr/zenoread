@@ -5,7 +5,7 @@ import { AppError } from "../utils/errors";
 import { TxtStreamer } from "./txtStreamer";
 import { PdfStreamer } from "./pdfStreamer";
 import type { ParsedDocument } from "./types";
-import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist";
+import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 const mockOpen = vi.hoisted(() => vi.fn());
 const mockInvoke = vi.hoisted(() => vi.fn());

@@ -35,11 +35,11 @@ beforeEach(() => {
 
 describe("PdfParser — text extraction", () => {
   it("returns a streamer that loads pages on demand", async () => {
-    vi.doMock("pdfjs-dist", () => mockPdfjsLib([
+    vi.doMock("pdfjs-dist/legacy/build/pdf.mjs", () => mockPdfjsLib([
       { text: "Hello world" },
       { text: "from PDF" },
     ]));
-    vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
     const { PdfParser } = await import("./pdfParser");
     const parser = new PdfParser();
     const result = await parser.parse(new Uint8Array([1, 2, 3]), meta());
@@ -50,8 +50,8 @@ describe("PdfParser — text extraction", () => {
   });
 
   it("falls back to filename title when PDF has no metadata title", async () => {
-    vi.doMock("pdfjs-dist", () => mockPdfjsLib([{ text: "Some content" }]));
-    vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.mjs", () => mockPdfjsLib([{ text: "Some content" }]));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
     const { PdfParser } = await import("./pdfParser");
     const parser = new PdfParser();
     const result = await parser.parse(new Uint8Array([1]), meta({ title: "fallback" }));
@@ -59,8 +59,8 @@ describe("PdfParser — text extraction", () => {
   });
 
   it("uses PDF metadata title when available", async () => {
-    vi.doMock("pdfjs-dist", () => mockPdfjsLib([{ text: "Some content" }], { Title: "My PDF Document" }));
-    vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.mjs", () => mockPdfjsLib([{ text: "Some content" }], { Title: "My PDF Document" }));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
     const { PdfParser } = await import("./pdfParser");
     const parser = new PdfParser();
     const result = await parser.parse(new Uint8Array([1]), meta({ title: "fallback" }));
@@ -68,8 +68,8 @@ describe("PdfParser — text extraction", () => {
   });
 
   it("preserves metadata passthrough", async () => {
-    vi.doMock("pdfjs-dist", () => mockPdfjsLib([{ text: "Hola mundo" }]));
-    vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.mjs", () => mockPdfjsLib([{ text: "Hola mundo" }]));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
     const { PdfParser } = await import("./pdfParser");
     const parser = new PdfParser();
     const result = await parser.parse(new Uint8Array([1]), meta({
@@ -85,8 +85,8 @@ describe("PdfParser — text extraction", () => {
 
 describe("PdfParser — validation", () => {
   it("throws when all pages are empty (scanned document)", async () => {
-    vi.doMock("pdfjs-dist", () => mockPdfjsLib([{ text: "" }, { text: "" }]));
-    vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.mjs", () => mockPdfjsLib([{ text: "" }, { text: "" }]));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
     const { PdfParser } = await import("./pdfParser");
     const parser = new PdfParser();
     await expect(parser.parse(new Uint8Array([1]), meta())).rejects.toThrow(
@@ -95,8 +95,8 @@ describe("PdfParser — validation", () => {
   });
 
   it("does not throw when some pages are empty", async () => {
-    vi.doMock("pdfjs-dist", () => mockPdfjsLib([{ text: "" }, { text: "page two text" }]));
-    vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.mjs", () => mockPdfjsLib([{ text: "" }, { text: "page two text" }]));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
     const { PdfParser } = await import("./pdfParser");
     const parser = new PdfParser();
     const result = await parser.parse(new Uint8Array([1]), meta());
@@ -108,8 +108,8 @@ describe("PdfParser — validation", () => {
 
 describe("PdfParser — edge cases", () => {
   it("accepts string input by encoding it", async () => {
-    vi.doMock("pdfjs-dist", () => mockPdfjsLib([{ text: "Text content" }]));
-    vi.doMock("pdfjs-dist/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.mjs", () => mockPdfjsLib([{ text: "Text content" }]));
+    vi.doMock("pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker", () => ({ default: vi.fn() }));
     const { PdfParser } = await import("./pdfParser");
     const parser = new PdfParser();
     const result = await parser.parse("fake pdf bytes", meta());
