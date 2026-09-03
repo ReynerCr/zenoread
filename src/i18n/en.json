@@ -63,17 +63,16 @@
   "settings.pause.paragraph": "Paragraph",
   "settings.resetPauses": "Reset pauses to defaults",
   "settings.resetAllSettings": "Reset all settings",
-  "settings.deleteAllData": "Delete all app data",
+  "settings.clearHistory": "Clear history",
   "settings.confirmResetDefaults": "Reset all settings to their defaults?",
-  "settings.confirmDeleteAll": "Delete ALL app data (settings, documents, progress)? This cannot be undone.",
+  "settings.confirmClearHistory": "Clear reading history? This removes your documents and reading progress.",
 
   "recovery.aria": "Storage problem",
   "recovery.title": "Storage problem detected",
-  "recovery.body1": "ZenoRead couldn't access its local database. This can happen after a corrupted update or a browser data clear. Your reading data may be inaccessible.",
-  "recovery.body2": "You can reset all app data to start fresh, or continue without resetting. If you continue, some features may not work correctly until the issue is resolved.",
-  "recovery.continue": "Continue without resetting",
-  "recovery.reset": "Reset all data",
+  "recovery.body1": "ZenoRead has found a problem while loading its data. This can happen after a corrupted update. To recover, all app data must be reset, and the app may close after.",
+  "recovery.reset": "Reset all data and exit",
   "recovery.resetting": "Resetting...",
+  "recovery.resetFailed": "Could not reset app data. Please reopen the app and try again.",
 
   "notifications.dismiss": "Dismiss notification",
 

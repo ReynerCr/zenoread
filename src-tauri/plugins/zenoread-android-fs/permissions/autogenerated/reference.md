@@ -9,6 +9,7 @@ Enables the Android SAF picker commands.
 - `allow-persist`
 - `allow-release`
 - `allow-release-all`
+- `allow-clear-app-data`
 
 #### This default permission set includes the following:
 
@@ -17,6 +18,7 @@ Enables the Android SAF picker commands.
 - `allow-persist`
 - `allow-release`
 - `allow-release-all`
+- `allow-clear-app-data`
 
 ## Permission Table
 
@@ -49,6 +51,32 @@ Enables the check_persisted command without any pre-configured scope.
 <td>
 
 Denies the check_persisted command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`zenoread-android-fs:allow-clear-app-data`
+
+</td>
+<td>
+
+Enables the clear_app_data command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`zenoread-android-fs:deny-clear-app-data`
+
+</td>
+<td>
+
+Denies the clear_app_data command without any pre-configured scope.
 
 </td>
 </tr>

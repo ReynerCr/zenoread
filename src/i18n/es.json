@@ -63,17 +63,16 @@
   "settings.pause.paragraph": "Párrafo",
   "settings.resetPauses": "Restablecer pausas predeterminadas",
   "settings.resetAllSettings": "Restablecer todos los ajustes",
-  "settings.deleteAllData": "Eliminar todos los datos de la aplicación",
+  "settings.clearHistory": "Borrar historial",
   "settings.confirmResetDefaults": "¿Restablecer todos los ajustes a los valores predeterminados?",
-  "settings.confirmDeleteAll": "¿Eliminar TODOS los datos de la aplicación (ajustes, documentos, progreso)? Esta acción no se puede deshacer.",
+  "settings.confirmClearHistory": "¿Borrar el historial de lectura? Esto eliminará tus documentos y tu progreso de lectura.",
 
   "recovery.aria": "Problema de almacenamiento",
   "recovery.title": "Se detectó un problema de almacenamiento",
-  "recovery.body1": "ZenoRead no pudo acceder a su base de datos local. Esto puede ocurrir después de una actualización corrupta o de borrar los datos del navegador. Es posible que sus datos de lectura no sean accesibles.",
-  "recovery.body2": "Puede restablecer todos los datos de la aplicación para empezar de cero o continuar sin restablecer. Si continúa, es posible que algunas funciones no funcionen correctamente hasta que se resuelva el problema.",
-  "recovery.continue": "Continuar sin restablecer",
-  "recovery.reset": "Restablecer todos los datos",
+  "recovery.body1": "ZenoRead encontró un problema al cargar sus datos. Esto puede ocurrir después de una actualización corrupta. Para recuperarse, se deben restablecer todos los datos de la aplicación y la app podría cerrarse después.",
+  "recovery.reset": "Restablecer todos los datos y salir",
   "recovery.resetting": "Restableciendo...",
+  "recovery.resetFailed": "No se pudieron restablecer los datos de la aplicación. Reabre la app e inténtalo de nuevo.",
 
   "notifications.dismiss": "Descartar notificación",
 

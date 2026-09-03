@@ -1,0 +1,8 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = """
+Enables the recovery commands (wipe_app_data, exit_app) used by the recovery
+dialog when the IndexedDB file is unreadable.
+"""
+permissions = ["allow-wipe-app-data", "allow-exit-app"]

@@ -20,41 +20,4 @@ test.describe("Error handling and recovery", () => {
     await expect(page.getByTestId("recovery-dialog")).toBeVisible({ timeout: 15000 });
     await expect(page.getByText("Storage problem detected")).toBeVisible();
   });
-
-  test("continue without resetting dismisses the dialog", async ({ page }) => {
-    await page.addInitScript(() => {
-      Object.defineProperty(window, "indexedDB", {
-        get: () => undefined,
-        configurable: false,
-      });
-    });
-
-    await page.goto("/");
-    await expect(page.getByTestId("recovery-dialog")).toBeVisible({ timeout: 15000 });
-
-    await page.getByRole("button", { name: "Continue without resetting" }).click();
-    await expect(page.getByTestId("recovery-dialog")).not.toBeVisible();
-
-    // The app should still show the reading area.
-    await expect(page.getByRole("region", { name: "Reading area" })).toBeVisible();
-  });
-
-  test("reading area is visible after continuing past recovery dialog", async ({ page }) => {
-    await page.addInitScript(() => {
-      Object.defineProperty(window, "indexedDB", {
-        get: () => undefined,
-        configurable: false,
-      });
-    });
-
-    await page.goto("/");
-    await expect(page.getByTestId("recovery-dialog")).toBeVisible({ timeout: 15000 });
-
-    await page.getByRole("button", { name: "Continue without resetting" }).click();
-    await expect(page.getByTestId("recovery-dialog")).not.toBeVisible();
-
-    const readingArea = page.getByRole("region", { name: "Reading area" });
-    await expect(readingArea).toBeVisible();
-    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible({ timeout: 5000 });
-  });
 });

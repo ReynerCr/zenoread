@@ -21,6 +21,8 @@
     {
       "identifier": "fs:scope",
       "allow": [{ "path": "**" }]
-    }
+    },
+    "allow-wipe-app-data",
+    "allow-exit-app"
   ]
 }

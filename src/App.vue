@@ -45,8 +45,5 @@ onBeforeUnmount(() => {
 <template>
   <AppLayout v-if="settings.loaded" />
   <NotificationHost />
-  <RecoveryDialog
-    :show="showRecoveryDialog"
-    @continue="showRecoveryDialog = false"
-  />
+  <RecoveryDialog :show="showRecoveryDialog" />
 </template>

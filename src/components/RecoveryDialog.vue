@@ -1,24 +1,21 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { resetDatabase } from "../db/database";
+import { resetAllAppData } from "../db/database";
+import { reportError } from "../utils/errors";
+import { t } from "../i18n";
 
 const props = defineProps<{ show: boolean }>();
-const emit = defineEmits<{ (e: "continue"): void }>();
 
 const resetting = ref(false);
 
 async function handleReset() {
   resetting.value = true;
   try {
-    await resetDatabase();
-    setTimeout(() => window.location.reload(), 500);
-  } catch {
+    await resetAllAppData();
+  } catch (error) {
     resetting.value = false;
+    reportError(error, t("recovery.resetFailed"), { context: "recovery.handleReset" });
   }
-}
-
-function handleContinue() {
-  emit("continue");
 }
 </script>
 
@@ -34,20 +31,10 @@ function handleContinue() {
       <h2 class="mb-3 text-lg font-semibold text-zeno-text">
         {{ $t('recovery.title') }}
       </h2>
-      <p class="mb-4 text-sm text-zeno-muted">
+      <p class="mb-5 text-sm text-zeno-muted">
         {{ $t('recovery.body1') }}
       </p>
-      <p class="mb-5 text-sm text-zeno-muted">
-        {{ $t('recovery.body2') }}
-      </p>
       <div class="flex justify-end gap-3">
-        <button
-          class="rounded-md border border-zeno-border px-4 py-2 text-sm text-zeno-muted hover:text-zeno-text"
-          :disabled="resetting"
-          @click="handleContinue"
-        >
-          {{ $t('recovery.continue') }}
-        </button>
         <button
           class="rounded-md bg-red-500/80 px-4 py-2 text-sm text-white hover:bg-red-500"
           :disabled="resetting"
