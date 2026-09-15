@@ -1,4 +1,5 @@
 import type { RxJsonSchema } from "rxdb";
+import type { ThemeName } from "../../themes/registry";
 
 /**
  * Multipliers applied to the base word duration when a word ends with a given
@@ -14,8 +15,6 @@ export interface PauseMultipliers {
   exclamation: number;
   paragraph: number;
 }
-
-export type ThemeName = "light" | "dark";
 
 export type LanguageName = "en" | "es";
 
@@ -66,7 +65,7 @@ export const DEFAULT_USER_SETTINGS: UserSettingsDocType = {
 
 export const userSettingsSchema: RxJsonSchema<UserSettingsDocType> = {
   title: "user settings schema",
-  version: 3,
+  version: 4,
   primaryKey: "id",
   type: "object",
   properties: {
@@ -74,7 +73,7 @@ export const userSettingsSchema: RxJsonSchema<UserSettingsDocType> = {
     wpm_default: { type: "number", minimum: 1, maximum: 2000, multipleOf: 1 },
     max_words_screen: { type: "number", minimum: 1, maximum: 20, multipleOf: 1 },
     min_words_screen: { type: "number", minimum: 1, maximum: 20, multipleOf: 1 },
-    theme: { type: "string", enum: ["light", "dark"] },
+    theme: { type: "string", maxLength: 64 },
     pause_multipliers: {
       type: "object",
       properties: {

@@ -4,9 +4,8 @@
  * ZenoRead theme system.
  *
  * Themes are driven by a `data-theme` attribute on the <html> element
- * (managed by the settings store). CSS custom properties below define the
- * palette for each theme so the system can be extended with new themes
- * later without touching component markup.
+ * (managed by the settings store). Theme colors are injected at startup
+ * from the registry (src/themes/registry.ts).
  */
 @theme {
   --color-zeno-bg: var(--zeno-bg);
@@ -17,25 +16,15 @@
   --color-zeno-accent: var(--zeno-accent);
 }
 
-:root,
-[data-theme="light"] {
-  color-scheme: light;
-  --zeno-bg: #f5f5f4;
-  --zeno-surface: #ffffff;
-  --zeno-border: #e7e5e4;
-  --zeno-text: #1c1917;
-  --zeno-muted: #78716c;
-  --zeno-accent: #6366f1;
-}
-
-[data-theme="dark"] {
+/* Fallback: dark theme colors until the registry injects all themes via JS. */
+:root {
   color-scheme: dark;
   --zeno-bg: #0c0a09;
   --zeno-surface: #1c1917;
   --zeno-border: #292524;
   --zeno-text: #f5f5f4;
-  --zeno-muted: #a8a29e;
-  --zeno-accent: #818cf8;
+  --zeno-muted: #a9a39f;
+  --zeno-accent: #faa517;
 }
 
 html,

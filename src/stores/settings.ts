@@ -10,6 +10,7 @@ import {
 } from "../db/schemas/userSettings.schema";
 import { reportError } from "../utils/errors";
 import { t } from "../i18n";
+import { getTheme, type ThemeName } from "../themes/registry";
 
 const SAVE_DEBOUNCE_MS = 500;
 
@@ -39,10 +40,8 @@ export const useSettingsStore = defineStore("settings", () => {
         .exec();
 
       if (!doc) {
-        doc = await db.user_settings.insert({
-          ...DEFAULT_USER_SETTINGS,
-          language: detectLanguage(),
-        });
+        const plainSettings: UserSettingsDocType = JSON.parse(JSON.stringify(settings.value));
+        doc = await db.user_settings.insert(plainSettings);
       }
 
       settings.value = doc.toJSON() as UserSettingsDocType;
@@ -51,6 +50,12 @@ export const useSettingsStore = defineStore("settings", () => {
       doc.$.subscribe((latest) => {
         if (latest) settings.value = latest.toJSON() as UserSettingsDocType;
       });
+
+      // If the stored theme no longer exists in the registry, reset to default.
+      if (!getTheme(settings.value.theme)) {
+        reportError(new Error(`User theme "${settings.value.theme}" could not be loaded, resetting to default`), t("errors.themes.load"), { context: "settings.init" });
+        setTheme(DEFAULT_USER_SETTINGS.theme);
+      }
 
       loaded.value = true;
     } catch (error) {
@@ -97,8 +102,8 @@ export const useSettingsStore = defineStore("settings", () => {
     }, SAVE_DEBOUNCE_MS);
   }
 
-  function toggleTheme(): void {
-    update({ theme: settings.value.theme === "dark" ? "light" : "dark" });
+  function setTheme(id: ThemeName): void {
+    update({ theme: id });
   }
 
   // Reflect presentation settings onto the root element.
@@ -106,6 +111,8 @@ export const useSettingsStore = defineStore("settings", () => {
     () => settings.value.theme,
     (value) => {
       document.documentElement.setAttribute("data-theme", value);
+      const def = getTheme(value);
+      document.documentElement.style.colorScheme = def?.colorScheme ?? "dark";
     },
     { immediate: true },
   );
@@ -122,5 +129,5 @@ export const useSettingsStore = defineStore("settings", () => {
     { immediate: true, flush: "sync" },
   );
 
-  return { settings, loaded, theme, init, update, toggleTheme };
+  return { settings, loaded, theme, init, update, setTheme };
 });

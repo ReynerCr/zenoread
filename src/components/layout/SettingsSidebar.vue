@@ -13,6 +13,7 @@ import {
 import SliderInput from "../ui/SliderInput.vue";
 import { detectLanguage } from "../../i18n";
 import { isTauri } from "../../utils/platform";
+import { getAllThemes, type ThemeName } from "../../themes/registry";
 
 defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -177,12 +178,26 @@ async function clearRecentDocuments() {
 
       <div class="flex items-center justify-between">
         <span class="text-xs font-medium text-zeno-muted">{{ $t('settings.theme') }}</span>
-        <button
-          class="rounded-md border border-zeno-border px-3 py-1 text-sm text-zeno-text hover:bg-zeno-bg"
-          @click="settings.toggleTheme()"
-        >
-          {{ settings.theme === "dark" ? $t('settings.theme.dark') : $t('settings.theme.light') }}
-        </button>
+        <div class="relative">
+          <select
+            class="appearance-none rounded-md border border-zeno-border bg-zeno-bg py-1 pl-2 pr-6 text-sm text-zeno-text"
+            :value="settings.settings.theme"
+            @change="settings.setTheme(($event.target as HTMLSelectElement).value as ThemeName)"
+          >
+            <option
+              v-for="theme in getAllThemes()"
+              :key="theme.id"
+              :value="theme.id"
+            >
+              {{ theme.i18nKey ? $t(theme.i18nKey) : theme.displayName }}
+            </option>
+          </select>
+          <span
+            class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-zeno-muted"
+          >
+            ▾
+          </span>
+        </div>
       </div>
 
       <div class="flex items-center justify-between">

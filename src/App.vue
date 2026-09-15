@@ -8,6 +8,7 @@ import { useDocumentsStore } from "./stores/documents";
 import { useProgressStore } from "./stores/progress";
 import { useErrorBoundary } from "./composables/useErrorBoundary";
 import { runStartup, runShutdown } from "./utils/startup";
+import { initBuiltinThemes, initUserThemes } from "./themes/registry";
 
 const settings = useSettingsStore();
 const documents = useDocumentsStore();
@@ -23,6 +24,9 @@ onMounted(async () => {
     showRecoveryDialog.value = true;
     return;
   }
+
+  initBuiltinThemes();
+  await initUserThemes();
 
   await Promise.all([
     settings.init(),

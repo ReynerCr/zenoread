@@ -74,6 +74,7 @@ async function createDatabase(): Promise<ZenoDatabase> {
         1: (doc) => doc,
         2: (doc) => ({ ...doc, show_block_counter: false }),
         3: (doc) => ({ ...doc, language: "en" }),
+        4: (doc) => doc,
       },
     },
     documents: {

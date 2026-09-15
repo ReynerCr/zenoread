@@ -12,7 +12,7 @@
     "log:default",
     {
       "identifier": "fs:allow-read-text-file",
-      "allow": [{ "path": "**" }]
+      "allow": [{ "path": "**" }, { "path": "$APPDATA/*" }]
     },
     {
       "identifier": "fs:allow-read-file",
@@ -21,6 +21,10 @@
     {
       "identifier": "fs:scope",
       "allow": [{ "path": "**" }]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [{ "path": "**" }, { "path": "$APPDATA/*" }]
     },
     "allow-wipe-app-data",
     "allow-exit-app"
