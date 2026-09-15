@@ -1,4 +1,4 @@
-package com.zenoread.app
+package com.reynercr.zenoread
 
 import android.os.Bundle
 import android.webkit.WebView

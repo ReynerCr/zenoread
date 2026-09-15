@@ -1,8 +1,14 @@
 {
   "name": "zenoread",
   "private": true,
-  "version": "0.1.0",
+  "license": "UNLICENSED",
+  "author": "Reyner Contreras",
+  "description": "Speed reading app using RSVP",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ReynerCr/zenoread.git"
+  },
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
